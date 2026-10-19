@@ -404,6 +404,53 @@ class MetaManager {
     };
   }
 
+  // 저장/전송용 경량 포맷: 챔피언·아이템·스펠·증강체는 ID만 남기고 팀 중복 배열 제거
+  // (풍부화된 게임/이미 압축된 게임 모두 입력 가능 → 기존 저장 파일 자동 마이그레이션)
+  compactGame(game) {
+    if (!game || game.isGap) return game;
+    const { team100, team200, targetParticipant, participants = [], ...rest } = game;
+    return {
+      ...rest,
+      participants: participants.map(p => {
+        const { champion, spells, items, augments, ...pRest } = p;
+        return {
+          ...pRest,
+          championId: pRest.championId ?? champion?.id ?? 0,
+          spellIds: pRest.spellIds || (spells || []).map(s => s?.id || 0),
+          itemIds: pRest.itemIds || (items || []).map(it => it?.id || 0),
+          augmentIds: pRest.augmentIds || (augments || []).map(a => a?.id).filter(Boolean)
+        };
+      })
+    };
+  }
+
+  // 게임 목록에 등장하는 메타데이터만 추려서 반환 (클라이언트가 ID → 객체로 복원)
+  buildMetaFor(games) {
+    const out = { champions: {}, items: {}, spells: {}, augments: {} };
+    for (const g of games) {
+      if (!g || g.isGap) continue;
+      for (const p of g.participants || []) {
+        if (!out.champions[p.championId]) out.champions[p.championId] = this.getChampion(p.championId);
+        for (const id of p.spellIds || []) {
+          if (id && !out.spells[id]) {
+            const { id: sid, name, iconUrl } = this.getSpell(id);
+            out.spells[id] = { id: sid, name, iconUrl };
+          }
+        }
+        for (const id of p.itemIds || []) {
+          if (id > 0 && !out.items[id]) {
+            const { id: iid, name, iconUrl } = this.getItem(id);
+            out.items[id] = { id: iid, name, iconUrl };
+          }
+        }
+        for (const id of p.augmentIds || []) {
+          if (id > 0 && !out.augments[id]) out.augments[id] = this.getAugment(id);
+        }
+      }
+    }
+    return out;
+  }
+
   // 게임 상세 데이터 풍부화(Enrichment)
   enrichGameData(game, targetPuuid = null) {
     if (!game) return null;

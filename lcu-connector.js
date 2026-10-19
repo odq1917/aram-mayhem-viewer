@@ -1,12 +1,15 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 class LcuConnector {
   constructor() {
     this.auth = null; // { port, token, protocol, password }
     this.lastCheck = 0;
+    this.findPromise = null;
     this.agent = new https.Agent({
       rejectUnauthorized: false,
     });
@@ -17,7 +20,7 @@ class LcuConnector {
     // 1. 프로세스 커맨드라인에서 탐색 (가장 신뢰도 높음)
     try {
       const psCommand = `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"name = 'LeagueClientUx.exe'\\" | Select-Object -ExpandProperty CommandLine"`;
-      const stdout = execSync(psCommand, { encoding: 'utf8', timeout: 4000 });
+      const { stdout } = await execAsync(psCommand, { encoding: 'utf8', timeout: 4000, windowsHide: true });
       
       if (stdout && stdout.includes('--remoting-auth-token=')) {
         const portMatch = stdout.match(/--app-port=([0-9]+)/);
@@ -73,18 +76,34 @@ class LcuConnector {
     return null;
   }
 
-  async getAuth() {
+  // 인증 정보는 연결이 끊기기 전까지 재사용 (매번 PowerShell 실행하지 않음)
+  // 미연결 상태에서는 3초에 한 번만 재탐색, 동시 요청은 하나의 탐색을 공유
+  async getAuth(force = false) {
+    if (this.auth && !force) return this.auth;
     const now = Date.now();
-    if (!this.auth || now - this.lastCheck > 5000) {
+    if (!force && now - this.lastCheck < 3000) return this.auth;
+    if (!this.findPromise) {
       this.lastCheck = now;
-      await this.findCredentials();
+      this.findPromise = this.findCredentials().finally(() => { this.findPromise = null; });
     }
-    return this.auth;
+    return await this.findPromise;
   }
 
   // LCU API 요청 수행
   async request(endpoint, method = 'GET', body = null) {
-    const auth = await this.getAuth();
+    try {
+      return await this.rawRequest(await this.getAuth(), endpoint, method, body);
+    } catch (err) {
+      // 클라이언트 재시작 등으로 포트/토큰이 바뀐 경우 1회 재탐색 후 재시도
+      if (err.isConnectionError) {
+        const fresh = await this.getAuth(true);
+        if (fresh) return await this.rawRequest(fresh, endpoint, method, body);
+      }
+      throw err;
+    }
+  }
+
+  rawRequest(auth, endpoint, method, body) {
     if (!auth) {
       throw new Error('League Client is not running. (롤 클라이언트가 실행되어 있지 않습니다.)');
     }
@@ -124,6 +143,12 @@ class LcuConnector {
               const errJson = JSON.parse(data);
               errorMsg = errJson.message || errorMsg;
             } catch (e) {}
+            if (res.statusCode === 401) {
+              this.auth = null;
+              const authErr = new Error(errorMsg);
+              authErr.isConnectionError = true;
+              return reject(authErr);
+            }
             reject(new Error(errorMsg));
           }
         });
@@ -131,6 +156,7 @@ class LcuConnector {
 
       req.on('error', (err) => {
         this.auth = null; // 연결 끊김 처리
+        err.isConnectionError = true;
         reject(err);
       });
 
@@ -196,6 +222,14 @@ class LcuConnector {
       const res = await this.request(`/lol-summoner/v1/summoners?name=${encoded}`);
       if (res && res.puuid) return res;
     } catch (e) {}
+
+    // 태그 없이 입력한 경우 한국 서버 기본 태그(#KR1)로 재시도
+    if (!tagLine) {
+      try {
+        const res = await this.request(`/lol-summoner/v1/summoners?name=${encodeURIComponent(`${gameName}#KR1`)}`);
+        if (res && res.puuid) return res;
+      } catch (e) {}
+    }
 
     throw new Error(`소환사 '${nameQuery}'을(를) 찾을 수 없습니다.`);
   }

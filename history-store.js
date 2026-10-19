@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const meta = require('./meta-manager');
 
 class HistoryStore {
   constructor() {
@@ -22,13 +23,28 @@ class HistoryStore {
     return path.join(this.historyDir, `${safePuuid}.json`);
   }
 
-  // 저장된 과거 전적 로드
+  // 원자적 파일 쓰기 (저장 도중 종료돼도 기존 파일이 깨지지 않도록 임시 파일 → rename)
+  writeJsonAtomic(filePath, data) {
+    const tmp = `${filePath}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(data), 'utf8');
+    fs.renameSync(tmp, filePath);
+  }
+
+  // 저장된 과거 전적 로드 (구버전 대용량 포맷은 자동으로 경량 포맷으로 변환)
   getHistory(puuid) {
     const filePath = this.getFilePath(puuid);
     if (fs.existsSync(filePath)) {
       try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(content);
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        const games = data.games || [];
+        const needsMigration = games.some(g => !g.isGap && g.participants?.[0] && !g.participants[0].itemIds);
+        data.games = games.map(g => meta.compactGame(g));
+        if (needsMigration) {
+          const before = fs.statSync(filePath).size;
+          this.writeJsonAtomic(filePath, data);
+          console.log(`[HistoryStore] ${puuid} 저장 포맷 경량화: ${(before / 1e6).toFixed(1)}MB → ${(fs.statSync(filePath).size / 1e6).toFixed(1)}MB`);
+        }
+        return data;
       } catch (err) {
         console.warn(`[HistoryStore] ${puuid} 히스토리 파일 읽기 실패:`, err.message);
       }
@@ -41,90 +57,65 @@ class HistoryStore {
     };
   }
 
-  // 실시간 전적(liveGames)과 과거 저장 전적(cachedGames)을 지능적으로 병합
-  mergeGames(liveGames = [], cachedStoredItems = []) {
-    if (!cachedStoredItems || cachedStoredItems.length === 0) {
-      return liveGames.map(g => ({ ...g, isLiveFetched: true }));
+  // 실시간 전적(liveGames)과 과거 저장 전적(cachedStoredItems)을 병합
+  // windowOldestTime: 이번에 LCU가 돌려준 매치 목록(전 모드 포함) 중 가장 오래된 게임 시각.
+  //   LCU 목록은 최근 경기의 연속 구간이므로, 저장된 최신 경기가 이 시각보다 오래됐다면
+  //   그 사이 경기는 확인할 수 없음 → 공백(Gap) 표시.
+  mergeGames(liveGames = [], cachedStoredItems = [], windowOldestTime = null) {
+    const cachedGames = (cachedStoredItems || []).filter(item => !item.isGap);
+    // 이번 LCU 목록이 공백 구간 전체를 덮으면 그 사이 경기는 모두 확인된 것 → 공백 제거
+    const gaps = (cachedStoredItems || []).filter(item =>
+      item.isGap && !(windowOldestTime && item.olderGameTime >= windowOldestTime)
+    );
+
+    const mergedMap = new Map();
+    cachedGames.forEach(g => {
+      mergedMap.set(String(g.gameId), { ...g, isCached: true, isLiveFetched: false });
+    });
+    (liveGames || []).forEach(g => {
+      mergedMap.set(String(g.gameId), { ...g, isLiveFetched: true, isCached: false });
+    });
+    const games = Array.from(mergedMap.values()).sort((a, b) => (b.gameCreation || 0) - (a.gameCreation || 0));
+
+    // 새 공백 판정
+    const cachedNewest = cachedGames.reduce((max, g) => Math.max(max, g.gameCreation || 0), 0);
+    if (cachedNewest > 0 && windowOldestTime && cachedNewest < windowOldestTime) {
+      const liveOldest = (liveGames || []).reduce((min, g) => Math.min(min, g.gameCreation || Infinity), Infinity);
+      gaps.push({
+        isGap: true,
+        newerGameTime: Number.isFinite(liveOldest) ? liveOldest : windowOldestTime,
+        olderGameTime: cachedNewest,
+        message: '이전 검색 기록과의 사이에 기록되지 않은 경기가 있습니다.'
+      });
     }
 
-    if (!liveGames || liveGames.length === 0) {
-      return cachedStoredItems.map(g => g.isGap ? g : { ...g, isCached: true });
-    }
-
-    // 1. 기존 캐시에서 실제 게임 항목들만 추출 (과거 gap 객체는 재정렬용으로 분리)
-    const cachedGames = cachedStoredItems.filter(item => !item.isGap);
-    
-    // 캐시에 있는 게임 ID 세트
-    const cachedGameIdSet = new Set(cachedGames.map(g => String(g.gameId)));
-    const liveGameIdSet = new Set(liveGames.map(g => String(g.gameId)));
-
-    // 2. 겹치는 경기(Overlap) 여부 판별
-    // liveGames 중 cachedGames에 이미 존재하는 경기가 하나라도 있는지?
-    let hasOverlap = false;
-    let overlapGameId = null;
-
-    for (const lg of liveGames) {
-      if (cachedGameIdSet.has(String(lg.gameId))) {
-        hasOverlap = true;
-        overlapGameId = String(lg.gameId);
-        break;
+    // 공백 중복 제거 (같은 지점의 공백은 하나만) 후 위치에 맞게 삽입
+    const gapByOlder = new Map();
+    for (const gap of gaps) {
+      const prev = gapByOlder.get(gap.olderGameTime);
+      if (!prev || (gap.newerGameTime || 0) < (prev.newerGameTime || 0)) {
+        gapByOlder.set(gap.olderGameTime, { ...gap, gapId: `gap-${gap.olderGameTime}` });
       }
     }
+    const pendingGaps = Array.from(gapByOlder.values()).sort((a, b) => b.olderGameTime - a.olderGameTime);
 
-    // 3. 케이스 A: 겹치는 경기가 있는 경우 (자연스러운 연속 연결)
-    if (hasOverlap) {
-      console.log(`[HistoryStore] 겹치는 경기 발견 (gameId: ${overlapGameId}) -> 연속된 기록으로 자연스럽게 병합합니다.`);
-      
-      // liveGames에 있는 최신 데이터 우선 (isLiveFetched = true)
-      const mergedMap = new Map();
-      liveGames.forEach(g => {
-        mergedMap.set(String(g.gameId), { ...g, isLiveFetched: true });
-      });
-
-      // liveGames에 없는 과거 cachedGames 데이터 추가 (isCached = true)
-      cachedGames.forEach(g => {
-        if (!mergedMap.has(String(g.gameId))) {
-          mergedMap.set(String(g.gameId), { ...g, isCached: true });
-        }
-      });
-
-      // 시간 최신순(gameCreation 내림차순)으로 정렬
-      const sortedGames = Array.from(mergedMap.values()).sort((a, b) => (b.gameCreation || 0) - (a.gameCreation || 0));
-      return sortedGames;
+    const result = [];
+    let gi = 0;
+    for (const g of games) {
+      while (gi < pendingGaps.length && (g.gameCreation || 0) <= pendingGaps[gi].olderGameTime) {
+        // 공백 위쪽에 경기가 하나도 없으면(맨 위) 표시 의미가 없으므로 유지만 하고 위치는 맨 앞
+        result.push(pendingGaps[gi++]);
+      }
+      result.push(g);
     }
-
-    // 4. 케이스 B: 겹치는 경기가 없는 경우 (중간에 미기록 경기 공백 발생)
-    console.log(`[HistoryStore] 겹치는 경기 없음 -> 실시간 경기와 과거 기록 사이에 생략 구분선(Gap)을 추가합니다.`);
-
-    // liveGames (최신순 정렬)
-    const sortedLive = [...liveGames]
-      .map(g => ({ ...g, isLiveFetched: true }))
-      .sort((a, b) => (b.gameCreation || 0) - (a.gameCreation || 0));
-
-    // cachedGames (최신순 정렬)
-    const sortedCached = [...cachedGames]
-      .map(g => ({ ...g, isCached: true }))
-      .sort((a, b) => (b.gameCreation || 0) - (a.gameCreation || 0));
-
-    // 실시간에서 가장 오래된 경기의 시간과 캐시에서 가장 최신 경기의 시간
-    const liveOldest = sortedLive[sortedLive.length - 1];
-    const cachedNewest = sortedCached[0];
-
-    const gapItem = {
-      isGap: true,
-      gapId: `gap-${liveOldest.gameId}-${cachedNewest.gameId}`,
-      newerGameTime: liveOldest.gameCreation,
-      olderGameTime: cachedNewest.gameCreation,
-      message: '이전 검색 기록과의 사이에 기록되지 않은 경기가 있습니다.'
-    };
-
-    return [...sortedLive, gapItem, ...sortedCached];
+    return result;
   }
 
-  // 소환사 전적 저장 및 최신화
-  saveHistory(puuid, summonerInfo, liveGames = []) {
+  // 소환사 전적 저장 및 최신화 (경량 포맷으로 저장)
+  saveHistory(puuid, summonerInfo, liveGames = [], windowOldestTime = null) {
     const existing = this.getHistory(puuid);
-    const mergedGames = this.mergeGames(liveGames, existing.games || []);
+    const compactLive = liveGames.map(g => meta.compactGame(g));
+    const mergedGames = this.mergeGames(compactLive, existing.games || [], windowOldestTime);
 
     const dataToSave = {
       puuid,
@@ -134,10 +125,12 @@ class HistoryStore {
       games: mergedGames
     };
 
-    const filePath = this.getFilePath(puuid);
     try {
-      fs.writeFileSync(filePath, JSON.stringify(dataToSave, null, 2), 'utf8');
-      console.log(`[HistoryStore] ${puuid} 전적 저장 완료 (총 ${dataToSave.totalGamesCount}개 경기)`);
+      // 저장할 경기가 하나도 없으면 빈 파일을 만들지 않음
+      if (mergedGames.length > 0 || (existing.games || []).length > 0) {
+        this.writeJsonAtomic(this.getFilePath(puuid), dataToSave);
+        console.log(`[HistoryStore] ${puuid} 전적 저장 완료 (총 ${dataToSave.totalGamesCount}개 경기)`);
+      }
     } catch (err) {
       console.error(`[HistoryStore] 파일 저장 실패:`, err);
     }
@@ -172,9 +165,12 @@ class HistoryStore {
     list.unshift({
       puuid: summonerInfo.puuid,
       gameName: summonerInfo.gameName || summonerInfo.displayName || '소환사',
-      tagLine: summonerInfo.tagLine || 'KR1',
-      displayName: summonerInfo.displayName || `${summonerInfo.gameName}#${summonerInfo.tagLine || 'KR1'}`,
+      tagLine: summonerInfo.tagLine || '',
+      displayName: summonerInfo.gameName
+        ? (summonerInfo.tagLine ? `${summonerInfo.gameName}#${summonerInfo.tagLine}` : summonerInfo.gameName)
+        : (summonerInfo.displayName || '소환사'),
       profileIconId: summonerInfo.profileIconId || summonerInfo.profileIcon || 588,
+      summonerLevel: summonerInfo.summonerLevel || undefined,
       searchedAt: Date.now()
     });
 

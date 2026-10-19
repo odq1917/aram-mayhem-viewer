@@ -224,12 +224,15 @@ document.addEventListener('DOMContentLoaded', () => {
     showLoading(true);
     matchListContainer.innerHTML = '';
     emptyState.classList.add('hidden');
+    const emptyMsg = emptyState.querySelector('p');
+    if (emptyMsg) emptyMsg.textContent = '롤 클라이언트에서 증강 칼바람을 플레이한 후 다시 조회해보세요.';
 
     try {
       const res = await fetch(`/api/matches/${puuid}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '전적을 불러오지 못했습니다.');
 
-      currentGames = data.games || [];
+      currentGames = hydrateGames(data.games || [], data.meta);
       prepareGamesIndex(currentGames);
       const actualGamesCount = currentGames.filter(g => !g.isGap).length;
 
@@ -244,7 +247,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnClearAugSearch) btnClearAugSearch.classList.add('hidden');
 
       accumulatedCountBadge.textContent = `총 ${actualGamesCount}게임`;
-      matchTotalCount.textContent = `총 ${actualGamesCount}개의 경기`;
+      matchTotalCount.textContent = data.notice
+        ? `총 ${actualGamesCount}개의 경기 · ${data.notice}`
+        : `총 ${actualGamesCount}개의 경기`;
 
       buildPlayedChampionsList(currentGames);
       renderChampDropdown('');
@@ -252,10 +257,39 @@ document.addEventListener('DOMContentLoaded', () => {
       updateProfileStats(currentGames, '');
     } catch (err) {
       console.error('매치 조회 실패:', err);
+      const emptyMsg = emptyState.querySelector('p');
+      if (emptyMsg) emptyMsg.textContent = err.message;
       emptyState.classList.remove('hidden');
     } finally {
       showLoading(false);
     }
+  }
+
+  // 서버의 경량 포맷(ID만 포함)을 렌더링용 객체 구조로 복원
+  function hydrateGames(games, meta) {
+    if (!meta) return games;
+    const fallbackChamp = id => ({
+      id,
+      name: `챔피언 #${id}`,
+      squarePortraitPath: `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${id}.png`
+    });
+    return games.map(g => {
+      if (g.isGap) return g;
+      const participants = (g.participants || []).map(p => ({
+        ...p,
+        champion: meta.champions[p.championId] || fallbackChamp(p.championId),
+        spells: (p.spellIds || []).map(id => meta.spells[id] || null),
+        items: (p.itemIds || []).map(id => (id > 0 ? meta.items[id] || null : null)),
+        augments: (p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean)
+      }));
+      return {
+        ...g,
+        participants,
+        team100: participants.filter(p => p.teamId === 100),
+        team200: participants.filter(p => p.teamId === 200),
+        targetParticipant: participants.find(p => p.isTarget) || null
+      };
+    });
   }
 
   // 검색 속도 최적화를 위한 사전 인덱싱 (게임 로드 시 1회만 수행)
@@ -940,7 +974,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="detail-player-row ${p.isTarget ? 'is-target' : ''}">
           <div class="player-info-cell">
             <img src="${p.champion?.squarePortraitPath || ''}" class="player-champ-icon" alt="${escapeHtml(p.champion?.name)}" loading="lazy">
-            <span class="player-name-text" title="${escapeHtml(p.summonerName)}">
+            <span class="player-name-text${p.gameName && p.tagLine && !p.isTarget ? ' is-searchable' : ''}"
+                  title="${escapeHtml(p.gameName && p.tagLine ? `${p.gameName}#${p.tagLine}` : p.summonerName)}"
+                  ${p.gameName && p.tagLine ? `data-riot-id="${escapeHtml(`${p.gameName}#${p.tagLine}`)}"` : ''}>
               ${escapeHtml(p.summonerName || '소환사')}
             </span>
             ${leaverBadgeHtml}
@@ -1018,6 +1054,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     card.classList.toggle('expanded');
   };
+
+  // 상세 서랍에서 다른 소환사 닉네임 클릭 시 해당 소환사 전적 검색
+  matchListContainer.addEventListener('click', (e) => {
+    const nameEl = e.target.closest('.player-name-text.is-searchable');
+    if (!nameEl) return;
+    e.stopPropagation();
+    const riotId = nameEl.getAttribute('data-riot-id');
+    if (!riotId) return;
+    summonerSearchInput.value = riotId;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    searchSummoner(riotId);
+  });
 
   // 8. 증강체 툴팁 이벤트 (단일 이벤트 위임으로 수천 개 개별 리스너 제거)
   let activeTooltipSlot = null;

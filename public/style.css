@@ -2264,3 +2264,12 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.player-name-text.is-searchable {
+  cursor: pointer;
+}
+
+.player-name-text.is-searchable:hover {
+  text-decoration: underline;
+  color: #c4b5fd;
+}

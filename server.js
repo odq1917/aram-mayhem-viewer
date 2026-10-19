@@ -3,7 +3,6 @@ const path = require('path');
 const lcu = require('./lcu-connector');
 const meta = require('./meta-manager');
 const historyStore = require('./history-store');
-const sampleData = require('./sample-data');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3500;
@@ -112,21 +111,30 @@ app.delete('/api/recent-searches', (req, res) => {
 
 // 3. 소환사 검색 API (닉네임 또는 닉네임#태그)
 app.get('/api/search', async (req, res) => {
-  const query = req.query.q;
-  if (!query || !query.trim()) {
+  const query = String(req.query.q || '').trim();
+  if (!query) {
     return res.status(400).json({ error: '검색할 소환사명을 입력해주세요.' });
   }
 
   try {
     const isConnected = await lcu.isConnected();
     if (!isConnected) {
+      // 오프라인: 최근 검색 목록에서 이름으로 찾아 저장된 전적을 볼 수 있게 함
+      const norm = s => String(s || '').toLowerCase().replace(/\s+/g, '');
+      const q = norm(query);
+      const hit = historyStore.getRecentSearches().find(item =>
+        norm(item.displayName) === q || norm(`${item.gameName}#${item.tagLine}`) === q || norm(item.gameName) === q
+      );
+      if (hit) {
+        return res.json({ summoner: { ...hit, profileIconId: hit.profileIconId }, offline: true });
+      }
       return res.status(503).json({
         connected: false,
-        error: '롤 클라이언트가 실행되어 있지 않습니다. 롤 클라이언트를 실행한 후 검색해주세요.'
+        error: '롤 클라이언트가 실행되어 있지 않습니다. (오프라인에서는 최근 검색한 소환사의 저장된 전적만 볼 수 있습니다.)'
       });
     }
 
-    const summoner = await lcu.searchSummoner(query.trim());
+    const summoner = await lcu.searchSummoner(query);
     historyStore.addRecentSearch(summoner);
     res.json({ summoner });
   } catch (err) {
@@ -134,113 +142,110 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// 4. 소환사 매치 목록 및 증강 칼바람 전적 조회 API (실시간 + 과거 캐시 병합 및 Gap 처리)
+// 동시 실행 개수 제한 map (LCU 과부하 방지)
+async function mapLimit(list, limit, fn) {
+  const results = new Array(list.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, list.length) }, async () => {
+    while (next < list.length) {
+      const i = next++;
+      results[i] = await fn(list[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+function sendHistory(res, puuid, record, extra = {}) {
+  const games = record.games || [];
+  const total = games.filter(g => !g.isGap).length;
+  res.json({
+    puuid,
+    total,
+    liveCount: 0,
+    cachedCount: total,
+    games,
+    meta: meta.buildMetaFor(games),
+    ...extra
+  });
+}
+
+// 4. 소환사 매치 목록 및 증강 칼바람 전적 조회 API (실시간 + 과거 저장 병합 및 Gap 처리)
 app.get('/api/matches/:puuid', async (req, res) => {
   const puuid = req.params.puuid;
-  const mayhemOnly = req.query.mayhem !== 'false';
-  const clampInt = (v, def, min, max) => {
-    const n = parseInt(v, 10);
-    return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : def;
-  };
-  const begIndex = clampInt(req.query.begIndex, 0, 0, 500);
-  const endIndex = clampInt(req.query.endIndex, 30, begIndex + 1, begIndex + 100);
+
+  let isConnected = false;
+  try {
+    isConnected = await lcu.isConnected();
+  } catch (e) {}
+
+  if (!isConnected) {
+    const cached = historyStore.getHistory(puuid);
+    if (cached.games.length > 0) {
+      return sendHistory(res, puuid, cached, { offline: true, notice: '롤 클라이언트 미실행: 저장된 전적만 표시합니다.' });
+    }
+    return res.status(503).json({ connected: false, error: '롤 클라이언트가 실행되어 있지 않고, 저장된 전적도 없습니다.' });
+  }
 
   try {
-    const isConnected = await lcu.isConnected();
-    if (!isConnected) {
-      return res.status(503).json({
-        connected: false,
-        error: '롤 클라이언트가 실행되어 있지 않습니다.'
-      });
-    }
-
-    // [B] 롤 클라이언트 연결된 실시간 모드
-    // 1. LCU API에서 최신 매치 목록 호출 (충분한 표본을 위해 최근 40게임 조회)
-    const historyRes = await lcu.getMatchList(puuid, begIndex, Math.max(endIndex, 40));
+    // 1. LCU 최신 매치 목록 (LCU는 최근 약 40경기만 제공, 페이지 인덱스는 사실상 무시됨)
+    const historyRes = await lcu.getMatchList(puuid, 0, 40);
     const rawGames = historyRes?.games?.games || [];
+    const windowOldestTime = rawGames.length
+      ? Math.min(...rawGames.map(g => g.gameCreation || Infinity))
+      : null;
 
-    // 일반 협곡 솔랭(420), 자랭(440), 일반(400, 430), 봇전(830-850) 등은 1차 제외
-    const standardExcludes = [420, 440, 400, 430, 830, 840, 850, 490];
+    // 협곡 랭크/일반, 봇전, 연습 모드 등 증강이 없는 큐는 상세 조회 생략
+    const standardExcludes = [420, 440, 400, 430, 490, 830, 840, 850, 870, 880, 890, 3140];
     const candidateGames = rawGames.filter(g => !standardExcludes.includes(g.queueId));
 
-    // 2. 각 게임 상세 데이터 병렬 로드 및 증강체 검증 (최대 25개)
-    const gamesToFetch = candidateGames.slice(0, 25);
-    const enrichedLiveGames = await Promise.all(
-      gamesToFetch.map(async (g) => {
-        try {
-          const detail = await lcu.getGameDetail(g.gameId);
-          return meta.enrichGameData(detail, puuid);
-        } catch (e) {
-          return null;
-        }
-      })
-    );
+    // 2. 이미 저장된 경기는 상세 재조회 생략 (경기 결과는 바뀌지 않음)
+    const existing = historyStore.getHistory(puuid);
+    const savedIds = new Set(existing.games.filter(g => !g.isGap).map(g => String(g.gameId)));
+    const toFetch = candidateGames.filter(g => !savedIds.has(String(g.gameId)));
 
-    // 증강 칼바람이 확인된 게임만 선별 (null 제외)
-    const validLiveGames = enrichedLiveGames.filter(Boolean);
+    let failed = 0;
+    const enriched = await mapLimit(toFetch, 6, async (g) => {
+      try {
+        const detail = await lcu.getGameDetail(g.gameId);
+        return meta.enrichGameData(detail, puuid);
+      } catch (e) {
+        failed++;
+        return null;
+      }
+    });
+    const newGames = enriched.filter(Boolean);
 
-    // 3. 기존 저장된 과거 전적과 병합 및 영구 저장
-    const savedRecord = historyStore.saveHistory(puuid, null, validLiveGames);
+    // 상세 조회 실패 경기가 있으면 공백 판정을 보수적으로 (다음 조회 때 다시 시도됨)
+    const savedRecord = historyStore.saveHistory(puuid, null, newGames, failed ? null : windowOldestTime);
+    const liveIds = new Set(candidateGames.map(g => String(g.gameId)));
+    const liveCount = savedRecord.games.filter(g => !g.isGap && liveIds.has(String(g.gameId))).length;
 
-    res.json({
-      puuid,
-      total: savedRecord.totalGamesCount,
-      liveCount: validLiveGames.length,
-      cachedCount: savedRecord.totalGamesCount - validLiveGames.length,
-      games: savedRecord.games,
-      isSample: false
+    sendHistory(res, puuid, savedRecord, {
+      liveCount,
+      cachedCount: savedRecord.totalGamesCount - liveCount,
+      newCount: newGames.length
     });
   } catch (err) {
     console.error('매치 히스토리 조회 실패:', err.message);
-    
-    // 에러 발생 시 기존 캐시된 기록이라도 반환 시도
-    const cachedRecord = historyStore.getHistory(puuid);
-    if (cachedRecord.games && cachedRecord.games.length > 0) {
-      return res.json({
-        puuid,
-        total: cachedRecord.totalGamesCount || cachedRecord.games.filter(g => !g.isGap).length,
-        liveCount: 0,
-        cachedCount: cachedRecord.games.filter(g => !g.isGap).length,
-        games: cachedRecord.games,
-        isSample: false,
-        notice: '롤 클라이언트 실시간 연결 실패로 저장된 이전 전적만 표시합니다.'
-      });
+    const cached = historyStore.getHistory(puuid);
+    if (cached.games.length > 0) {
+      return sendHistory(res, puuid, cached, { notice: '롤 클라이언트 응답 실패로 저장된 이전 전적만 표시합니다.' });
     }
-
-    // 캐시도 없으면 샘플 데이터 반환
-    const enrichedLive = sampleData.sampleLiveGames.map(game => meta.enrichGameData(game, puuid));
-    const enrichedPast = sampleData.sampleCachedPastGames.map(game => meta.enrichGameData(game, puuid));
-    const merged = historyStore.mergeGames(enrichedLive, enrichedPast);
-
-    res.json({
-      puuid,
-      total: merged.filter(g => !g.isGap).length,
-      games: merged,
-      isSample: true,
-      notice: '롤 클라이언트 응답 실패로 샘플 데이터를 표시합니다.'
-    });
+    res.status(502).json({ error: `전적을 불러오지 못했습니다: ${err.message}` });
   }
 });
 
 // 5. 단일 매치 상세 조회 API
 app.get('/api/match/:gameId', async (req, res) => {
-  const gameId = req.params.gameId;
   const targetPuuid = req.query.puuid || null;
-
   try {
-    const isConnected = await lcu.isConnected();
-    if (!isConnected) {
-      const allSamples = [...sampleData.sampleLiveGames, ...sampleData.sampleCachedPastGames];
-      const sample = allSamples.find(g => String(g.gameId) === String(gameId)) || allSamples[0];
-      return res.json(meta.enrichGameData(sample, targetPuuid));
-    }
-
-    const detail = await lcu.getGameDetail(gameId);
-    res.json(meta.enrichGameData(detail, targetPuuid));
+    const detail = await lcu.getGameDetail(req.params.gameId);
+    const game = meta.enrichGameData(detail, targetPuuid);
+    if (!game) return res.status(404).json({ error: '증강 모드 경기가 아닙니다.' });
+    res.json(game);
   } catch (err) {
-    const allSamples = [...sampleData.sampleLiveGames, ...sampleData.sampleCachedPastGames];
-    const sample = allSamples.find(g => String(g.gameId) === String(gameId)) || allSamples[0];
-    res.json(meta.enrichGameData(sample, targetPuuid));
+    res.status(502).json({ error: err.message });
   }
 });
 
