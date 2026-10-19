@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>롤 증강 칼바람 전적 검색기 | ARAM Mayhem Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="background-effects">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- 상단 네비게이션 헤더 -->
+    <header class="main-header">
+      <div class="header-left">
+        <div class="logo-badge">
+          <span class="logo-icon">⚔️</span>
+          <div class="logo-text">
+            <h1 class="logo-title">MAYHEM.GG</h1>
+            <span class="logo-subtitle">롤 증강 칼바람 전적 & 과거 기록 누적 뷰어</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LCU 연결 상태 뱃지 & 내 전적 버튼 -->
+      <div class="header-right">
+        <div id="lcuStatusBadge" class="status-badge connecting">
+          <span class="status-dot"></span>
+          <span class="status-text">롤 클라이언트 확인 중...</span>
+        </div>
+        <button id="btnMyHistory" class="btn-primary" title="현재 로그인된 내 계정 전적 불러오기">
+          <i data-lucide="user-check"></i>
+          <span>내 전적 보기</span>
+        </button>
+        <button id="btnAugmentDex" class="btn-secondary" title="전체 증강체 목록 및 설명">
+          <i data-lucide="book-open"></i>
+          <span>증강체 도감</span>
+        </button>
+        <button id="btnBookmarkGuide" class="btn-secondary" title="브라우저 북마크 등록 및 자동 실행">
+          <i data-lucide="bookmark"></i>
+          <span>북마크 추가</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 검색창 섹션 -->
+    <section class="search-section">
+      <div class="search-box-wrapper">
+        <div class="search-box">
+          <i data-lucide="search" class="search-icon"></i>
+          <input 
+            type="text" 
+            id="summonerSearchInput" 
+            placeholder="소환사명#태그 (예: 칼바람장인#KR1, Hide on bush#KR1)" 
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button id="btnSearch" class="btn-search">검색</button>
+        </div>
+
+        <!-- 최근 검색한 소환사 칩 영역 -->
+        <div id="recentSearchesContainer" class="recent-searches-box hidden">
+          <div class="recent-header">
+            <span class="recent-label"><i data-lucide="clock" style="width:12px;height:12px;"></i> 최근 검색:</span>
+            <button id="btnClearAllRecent" class="btn-clear-all-recent" title="최근 검색어 모두 삭제">전체 삭제</button>
+          </div>
+          <div id="recentChipsList" class="recent-chips-list">
+            <!-- 동적으로 소환사 태그 칩 렌더링 -->
+          </div>
+        </div>
+
+        <div class="search-hints">
+          <span class="hint-label">💡 롤 클라이언트 내부 API로 실시간 전적을 불러오고, 이전에 검색했던 과거 전적까지 끊김 없이 누적해서 이어붙여 드립니다.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="main-content">
+      <!-- 로딩 인디케이터 -->
+      <div id="loadingIndicator" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p class="loading-msg">소환사 실시간 데이터와 누적된 과거 전적을 병합하는 중...</p>
+      </div>
+
+      <!-- 롤 클라이언트 미실행 시 대문짝만한 안내 화면 -->
+      <section id="lcuDisconnectedView" class="lcu-disconnected-hero hidden">
+        <div class="lcu-disc-card">
+          <div class="lcu-disc-icon-badge">
+            <i data-lucide="gamepad-2"></i>
+          </div>
+          <h1 class="lcu-disc-title">리그 오브 레전드를 실행해 주세요</h1>
+          <p class="lcu-disc-desc">
+            <strong>아수라장 전적 뷰어(MAYHEM.GG)</strong>는 사용자의 PC에서 실행 중인 <strong>롤 클라이언트</strong>와 실시간으로 연동되어 아수라장 매치 기록과 증강체 데이터를 직접 불러옵니다.
+          </p>
+
+          <div class="lcu-disc-steps">
+            <div class="disc-step-box">
+              <div class="disc-step-num">1</div>
+              <div class="disc-step-info">
+                <div class="disc-step-tit">롤 클라이언트 실행 & 로그인</div>
+                <div class="disc-step-sub">League of Legends를 실행하고 계정에 로그인해 주세요.</div>
+              </div>
+            </div>
+            <div class="disc-step-box">
+              <div class="disc-step-num">2</div>
+              <div class="disc-step-info">
+                <div class="disc-step-tit">아래 [다시 연결하기] 클릭</div>
+                <div class="disc-step-sub">롤이 켜진 후 버튼을 누르면 즉시 내 전적과 실시간 매치 기록이 로드됩니다.</div>
+              </div>
+            </div>
+          </div>
+
+          <button id="btnReconnectLcu" class="btn-reconnect-lcu">
+            <i data-lucide="refresh-cw"></i>
+            <span>롤 클라이언트 다시 연결하기</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 프로필 요약 카드 -->
+      <section id="profileSection" class="profile-card hidden">
+        <div class="profile-main">
+          <div class="profile-avatar-wrapper">
+            <img id="profileIconImg" src="" alt="Profile Icon" class="profile-avatar">
+            <span id="profileLevel" class="profile-level">0</span>
+          </div>
+          <div class="profile-info">
+            <div class="profile-names">
+              <h2 id="profileGameName" class="profile-name">소환사명</h2>
+              <span id="profileTagLine" class="profile-tag">#KR1</span>
+            </div>
+            <div class="profile-badges">
+              <span class="badge badge-mayhem">아수라장</span>
+              <span id="accumulatedCountBadge" class="badge badge-accumulated">총 0게임</span>
+              <span id="filteredChampBadge" class="badge badge-champ-filter hidden"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 전적 요약 통계 -->
+        <div class="profile-stats">
+          <div class="stat-box">
+            <span id="statWinRateLabel" class="stat-label">누적 승률</span>
+            <div class="stat-value"><span id="statWinCount" class="win-text">0승</span> <span id="statLossCount" class="loss-text">0패</span></div>
+            <span id="statWinRate" class="stat-sub">승률 0%</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">평균 KDA</span>
+            <div id="statAvgKDA" class="stat-value kda-highlight">0.00:1</div>
+            <span id="statAvgKillsDeaths" class="stat-sub">0.0 / 0.0 / 0.0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">최다 연승 / 연패</span>
+            <div class="stat-value">
+              <span id="statMaxWinStreak" class="win-text">0연승</span>
+              <span class="stat-slash">/</span>
+              <span id="statMaxLossStreak" class="loss-text">0연패</span>
+            </div>
+            <span id="statCurrentStreak" class="stat-sub">현재 -</span>
+          </div>
+          <div class="stat-box">
+            <span id="statFavAugLabel" class="stat-label">선호 증강체</span>
+            <div id="statFavAugment" class="stat-value augment-highlight">-</div>
+            <span id="statFavAugCount" class="stat-sub">0회 픽</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 툴바 영역 (아수라장 전용) -->
+      <div class="content-toolbar">
+        <div class="toolbar-title-group">
+          <span class="toolbar-badge"><i data-lucide="sparkles" style="width:14px;height:14px;"></i> 아수라장</span>
+        </div>
+
+        <div class="toolbar-filters-group">
+          <!-- 챔피언별 경기 검색창 + 드롭다운 -->
+          <div class="toolbar-champ-search" id="toolbarChampSearchWrapper">
+            <i data-lucide="swords" class="champ-search-icon"></i>
+            <input 
+              type="text" 
+              id="matchChampionSearchInput" 
+              class="champ-search-input" 
+              placeholder="챔피언 검색 (초성 가능, 예: ㅈㅋㅅ, 제이스)" 
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <button id="btnClearChampSearch" class="btn-clear-champ-search hidden" title="챔피언 검색 초기화">
+              <i data-lucide="x" style="width:14px;height:14px;"></i>
+            </button>
+
+            <!-- 내가 플레이한 챔피언 드롭다운 -->
+            <div id="champSearchDropdown" class="champ-search-dropdown hidden">
+              <div class="champ-dropdown-header">
+                <span>플레이한 챔피언 (판수·승률순)</span>
+                <span id="champDropdownCount" class="champ-dropdown-total">0종</span>
+              </div>
+              <div id="champDropdownList" class="champ-dropdown-list">
+                <!-- 동적으로 챔피언 목록 렌더링 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 증강체 경기 검색창 -->
+          <div class="toolbar-aug-search">
+            <i data-lucide="search" class="aug-search-icon"></i>
+            <input 
+              type="text" 
+              id="matchAugmentSearchInput" 
+              class="aug-search-input" 
+              placeholder="증강체 이름으로 경기 검색... (예: 궁극의 히드라, 우글렛)" 
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <button id="btnClearAugSearch" class="btn-clear-aug-search hidden" title="검색어 초기화">
+              <i data-lucide="x" style="width:14px;height:14px;"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar-right-group">
+          <span id="matchTotalCount" class="match-count-info">총 0개의 경기</span>
+        </div>
+      </div>
+
+      <!-- 매치 목록 리스트 (Gap Divider 포함) -->
+      <section id="matchListContainer" class="match-list">
+        <!-- 동적으로 Match Card 및 Gap Divider 렌더링 -->
+      </section>
+
+      <!-- 비어있을 때 안내 -->
+      <div id="emptyState" class="empty-state hidden">
+        <i data-lucide="inbox" class="empty-icon"></i>
+        <h3>조회된 증강 칼바람 전적이 없습니다.</h3>
+        <p>롤 클라이언트에서 증강 칼바람을 플레이한 후 다시 조회해보세요.</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- 증강체 도감 모달 -->
+  <div id="augmentDexModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="sparkles" class="modal-icon"></i>
+          <h2>증강체 도감 (Augment Codex)</h2>
+        </div>
+        <button id="btnCloseDexModal" class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+      
+      <div class="modal-filter-bar">
+        <div class="dex-search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="dexSearchInput" placeholder="증강체 이름 또는 키워드 검색...">
+        </div>
+        <div class="dex-rarity-filters">
+          <button class="filter-chip active" data-rarity="all">전체</button>
+          <button class="filter-chip chip-prismatic" data-rarity="kPrismatic">프리즘</button>
+          <button class="filter-chip chip-gold" data-rarity="kGold">골드</button>
+          <button class="filter-chip chip-silver" data-rarity="kSilver">실버</button>
+        </div>
+      </div>
+
+      <div id="dexGridContainer" class="dex-grid">
+        <!-- 증강체 카드 렌더링 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 브라우저 북마크 등록 가이드 모달 -->
+  <div id="bookmarkGuideModal" class="modal-overlay hidden">
+    <div class="modal-card bookmark-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="bookmark" class="modal-icon"></i>
+          <h2 class="modal-title">브라우저 북마크 등록 및 자동 실행</h2>
+        </div>
+        <button id="btnCloseBookmarkModal" class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="bookmark-modal-body">
+        <p class="bookmark-modal-desc">
+          아래 버튼을 <strong>브라우저 북마크바(즐겨찾기 바)</strong>로 마우스 드래그해서 끌어다 놓으세요!<br>
+          앞으로는 북마크 클릭 한 번으로 <strong>서버가 자동으로 켜지며 바로 전적 페이지가 열립니다.</strong>
+        </p>
+
+        <div class="bookmark-drag-zone">
+          <a id="bookmarkDraggableBtn" class="bookmark-draggable-btn" href="aram-mayhem://open">
+            ⚔️ 아수라장 전적
+          </a>
+          <span class="bookmark-drag-hint">👆 위 버튼을 마우스로 잡고 브라우저 북마크바에 끌어다 놓으세요!</span>
+        </div>
+
+        <div class="bookmark-guide-steps">
+          <div class="step-item">
+            <span class="step-num">1</span>
+            <span class="step-text">처음 1회 클릭 시 <em>"aram-mayhem을(를) 여시겠습니까?"</em> 팝업이 뜨면 <strong>[항상 허용]</strong>을 체크하세요.</span>
+          </div>
+          <div class="step-item">
+            <span class="step-num">2</span>
+            <span class="step-text">이제 바탕화면에서 프로그램을 일일이 켜지 않아도 북마크 클릭만으로 0초 만에 바로 실행됩니다!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 증강체 호버 툴팁 -->
+  <div id="globalAugmentTooltip" class="augment-tooltip-popup hidden">
+    <div class="tooltip-header">
+      <img id="tooltipAugImg" src="" alt="Augment Icon" class="tooltip-icon">
+      <div class="tooltip-title-box">
+        <div class="tooltip-name-row">
+          <span id="tooltipAugName" class="tooltip-name">증강체 이름</span>
+          <span id="tooltipAugRarity" class="tooltip-rarity-badge">프리즘</span>
+        </div>
+      </div>
+    </div>
+    <div id="tooltipAugDesc" class="tooltip-desc">
+      증강체 상세 효과 설명
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

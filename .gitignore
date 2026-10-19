@@ -1,0 +1,12 @@
+node_modules/
+dist/
+runtime/
+data/history/
+data/recent_searches.json
+protocol.reg
+launcher.vbs
+run_log.txt
+scratch_*.html
+북마크_등록_가이드.html
+.DS_Store
+Thumbs.db
