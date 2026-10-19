@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const list = await res.json();
       if (Array.isArray(list) && list.length > 0) {
         recentChipsList.innerHTML = list.map(item => `
-          <div class="recent-chip" data-puuid="${item.puuid}" data-name="${item.displayName || item.gameName}">
+          <div class="recent-chip" data-puuid="${escapeHtml(item.puuid)}" data-name="${escapeHtml(item.displayName || item.gameName)}">
             <span class="chip-name">
               <i data-lucide="user" style="width:11px;height:11px;"></i>
               <span>${escapeHtml(item.displayName || item.gameName)}</span>
@@ -745,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="match-summary-row" onclick="toggleMatchDetail('${game.gameId}')">
         <div class="col-meta">
           <div class="game-mode-row">
-            <span class="game-mode-title">${modeNameText}</span>
+            <span class="game-mode-title">${escapeHtml(modeNameText)}</span>
           </div>
           <span class="game-time-ago">${timeAgo}</span>
           <span class="game-result-badge">${resultBadgeText}</span>
@@ -754,13 +754,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="col-champ">
           <div class="champ-avatar-box">
-            <img src="${champ.squarePortraitPath || ''}" alt="${champ.name}" class="champ-avatar" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+            <img src="${champ.squarePortraitPath || ''}" alt="${escapeHtml(champ.name)}" class="champ-avatar" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
             <span class="champ-lvl">${p.champLevel || 1}</span>
           </div>
           <div class="champ-meta">
-            <span class="champ-name">${champ.name || '챔피언'}</span>
+            <span class="champ-name">${escapeHtml(champ.name || '챔피언')}</span>
             <div class="spells-row">
-              ${(p.spells || []).map(s => s?.iconUrl ? `<img src="${s.iconUrl}" class="spell-icon" loading="lazy" title="${s.name}">` : '').join('')}
+              ${(p.spells || []).map(s => s?.iconUrl ? `<img src="${s.iconUrl}" class="spell-icon" loading="lazy" title="${escapeHtml(s.name)}">` : '').join('')}
             </div>
           </div>
         </div>
@@ -863,13 +863,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="aug-slot-wrapper">
             <div class="augment-slot ${aug.rarityCode}" 
                  data-aug-id="${aug.id}" 
-                 data-aug-name="${aug.name}" 
+                 data-aug-name="${escapeHtml(aug.name)}" 
                  data-aug-desc="${encodeURIComponent(aug.styledDescription || aug.description || '')}" 
                  data-aug-rarity="${aug.rarityLabel}" 
                  data-aug-icon="${aug.iconUrl}">
-              <img src="${aug.iconUrl}" alt="${aug.name}" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+              <img src="${aug.iconUrl}" alt="${escapeHtml(aug.name)}" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
             </div>
-            <span class="aug-name-label" title="${aug.name}">${labelHtml}</span>
+            <span class="aug-name-label" title="${escapeHtml(aug.name)}">${labelHtml}</span>
           </div>
         `;
       } else {
@@ -890,8 +890,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = items[i];
       if (item && item.iconUrl) {
         html += `
-          <div class="item-slot" title="${item.name || ''}">
-            <img src="${item.iconUrl}" alt="${item.name || ''}" loading="lazy" onerror="this.style.display='none'">
+          <div class="item-slot" title="${escapeHtml(item.name)}">
+            <img src="${item.iconUrl}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">
           </div>
         `;
       } else {
@@ -918,16 +918,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const augsMini = (p.augments || []).map(aug => `
         <div class="aug-mini-slot ${aug.rarityCode}" 
              data-aug-id="${aug.id}" 
-             data-aug-name="${aug.name}" 
+             data-aug-name="${escapeHtml(aug.name)}" 
              data-aug-desc="${encodeURIComponent(aug.styledDescription || aug.description || '')}" 
              data-aug-rarity="${aug.rarityLabel}" 
              data-aug-icon="${aug.iconUrl}">
-          <img src="${aug.iconUrl}" alt="${aug.name}" loading="lazy">
+          <img src="${aug.iconUrl}" alt="${escapeHtml(aug.name)}" loading="lazy">
         </div>
       `).join('');
 
       const itemsMini = (p.items || []).slice(0, 6).map(it => `
-        <div class="item-mini-slot" title="${it?.name || ''}">
+        <div class="item-mini-slot" title="${escapeHtml(it?.name)}">
           ${it?.iconUrl ? `<img src="${it.iconUrl}" loading="lazy">` : ''}
         </div>
       `).join('');
@@ -939,9 +939,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <div class="detail-player-row ${p.isTarget ? 'is-target' : ''}">
           <div class="player-info-cell">
-            <img src="${p.champion?.squarePortraitPath || ''}" class="player-champ-icon" alt="${p.champion?.name}" loading="lazy">
-            <span class="player-name-text" title="${p.summonerName}">
-              ${p.summonerName || '소환사'}
+            <img src="${p.champion?.squarePortraitPath || ''}" class="player-champ-icon" alt="${escapeHtml(p.champion?.name)}" loading="lazy">
+            <span class="player-name-text" title="${escapeHtml(p.summonerName)}">
+              ${escapeHtml(p.summonerName || '소환사')}
             </span>
             ${leaverBadgeHtml}
           </div>
@@ -1091,10 +1091,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = `dex-card ${aug.rarityCode}`;
       card.innerHTML = `
-        <img src="${aug.iconUrl}" alt="${aug.name}" class="dex-card-icon" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+        <img src="${aug.iconUrl}" alt="${escapeHtml(aug.name)}" class="dex-card-icon" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
         <div class="dex-card-body">
           <div class="dex-card-title-row">
-            <span class="dex-card-name">${aug.name}</span>
+            <span class="dex-card-name">${escapeHtml(aug.name)}</span>
             <span class="dex-card-badge badge-${aug.rarityCode}">${aug.rarityLabel}</span>
           </div>
           <p class="dex-card-desc">${aug.styledDescription || aug.description || '효과 설명 없음'}</p>
@@ -1352,7 +1352,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function escapeHtml(text) {
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(text ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // 실행 시작

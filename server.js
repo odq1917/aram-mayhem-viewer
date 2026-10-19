@@ -1,14 +1,43 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const lcu = require('./lcu-connector');
 const meta = require('./meta-manager');
 const historyStore = require('./history-store');
+const sampleData = require('./sample-data');
 
 const app = express();
-const PORT = process.env.PORT || 3500;
+const PORT = Number(process.env.PORT) || 3500;
+const HOST = '127.0.0.1';
 
-app.use(cors());
+// 보안: 로컬 대시보드 외 출처 차단
+// - Host 검사: DNS 리바인딩 공격 방지
+// - Origin 검사: 다른 웹사이트가 브라우저를 통해 API(삭제 등)를 호출하는 것 방지
+const ALLOWED_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
+const ALLOWED_ORIGINS = new Set([`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`]);
+
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  if (!ALLOWED_HOSTS.has(String(req.headers.host || '').toLowerCase())) {
+    return res.status(403).json({ error: 'Forbidden host' });
+  }
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.has(origin.toLowerCase())) {
+    return res.status(403).json({ error: 'Forbidden origin' });
+  }
+  next();
+});
+
+// 경로 파라미터 검증 (LCU 경로 조작 방지)
+const PUUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+app.param('puuid', (req, res, next, value) => {
+  if (!PUUID_RE.test(value)) return res.status(400).json({ error: '잘못된 PUUID 형식입니다.' });
+  next();
+});
+app.param('gameId', (req, res, next, value) => {
+  if (!/^\d{1,20}$/.test(value)) return res.status(400).json({ error: '잘못된 gameId 형식입니다.' });
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -109,8 +138,12 @@ app.get('/api/search', async (req, res) => {
 app.get('/api/matches/:puuid', async (req, res) => {
   const puuid = req.params.puuid;
   const mayhemOnly = req.query.mayhem !== 'false';
-  const begIndex = parseInt(req.query.begIndex || '0', 10);
-  const endIndex = parseInt(req.query.endIndex || '30', 10);
+  const clampInt = (v, def, min, max) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : def;
+  };
+  const begIndex = clampInt(req.query.begIndex, 0, 0, 500);
+  const endIndex = clampInt(req.query.endIndex, 30, begIndex + 1, begIndex + 100);
 
   try {
     const isConnected = await lcu.isConnected();
@@ -274,7 +307,7 @@ function registerProtocolHandler() {
 async function startServer() {
   await meta.init();
   registerProtocolHandler();
-  app.listen(PORT, () => {
+  app.listen(PORT, HOST, () => {
     console.log(`=======================================================`);
     console.log(`⚡ 롤 증강 칼바람 전적 뷰어 (ARAM Mayhem Search Viewer)`);
     console.log(`🔗 대시보드 URL: http://localhost:${PORT}`);
