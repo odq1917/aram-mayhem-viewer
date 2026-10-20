@@ -87,6 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       isLcuConnected = data.connected;
 
+      const appVersionEl = document.getElementById('appVersion');
+      if (appVersionEl && data.version) appVersionEl.textContent = `v${data.version}`;
+
       const bookmarkDraggableBtn = document.getElementById('bookmarkDraggableBtn');
       if (bookmarkDraggableBtn && data.openHtmlUrl) {
         bookmarkDraggableBtn.href = data.openHtmlUrl;

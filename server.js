@@ -4,6 +4,8 @@ const lcu = require('./lcu-connector');
 const meta = require('./meta-manager');
 const historyStore = require('./history-store');
 
+const { version: APP_VERSION } = require('./package.json');
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3500;
 const HOST = '127.0.0.1';
@@ -53,13 +55,15 @@ app.get('/api/status', async (req, res) => {
     res.json({
       connected: isConnected,
       currentSummoner: currentSummoner,
-      openHtmlUrl
+      openHtmlUrl,
+      version: APP_VERSION
     });
   } catch (err) {
     res.json({
       connected: false,
       currentSummoner: null,
       openHtmlUrl,
+      version: APP_VERSION,
       error: err.message
     });
   }
@@ -314,7 +318,7 @@ async function startServer() {
   registerProtocolHandler();
   app.listen(PORT, HOST, () => {
     console.log(`=======================================================`);
-    console.log(`⚡ 롤 증강 칼바람 전적 뷰어 (ARAM Mayhem Search Viewer)`);
+    console.log(`⚡ 롤 증강 칼바람 전적 뷰어 (ARAM Mayhem Search Viewer) v${APP_VERSION}`);
     console.log(`🔗 대시보드 URL: http://localhost:${PORT}`);
     console.log(`📌 북마크 프로토콜: aram-mayhem://open`);
     console.log(`=======================================================`);
