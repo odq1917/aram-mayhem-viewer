@@ -280,10 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '전적을 불러오지 못했습니다.');
 
-      const loadedGames = hydrateGames(data.games || [], data.meta);
-      const arenaCount = loadedGames.filter(g => !g.isGap && g.isArena).length;
-      currentGames = includeArena ? loadedGames : loadedGames.filter(g => g.isGap || !g.isArena);
-      updateArenaToggle(arenaCount);
+      currentGames = hydrateGames(data.games || [], data.meta);
       prepareGamesIndex(currentGames);
       const actualGamesCount = currentGames.filter(g => !g.isGap).length;
 
@@ -416,9 +413,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const KING = '나는 왕이다';
   const PANDORA = '판도라의 상자';
 
-  function annotateAugments(augs, champLevel, isArena) {
+  function annotateAugments(augs, champLevel) {
     const list = augs.map(aug => ({ ...aug }));
-    if (isArena) return list; // 아레나는 증강 규칙이 달라 판별하지 않음
     const picks = [3, 7, 11, 15].filter(l => (champLevel || 0) >= l).length;
     let extra = list.length - picks;
 
@@ -466,26 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return aug.source ? `<span class="aug-source-mark src-${aug.source}">${AUG_SOURCE_MARK[aug.source]}</span>` : '';
   }
 
-  // 아레나 경기는 증강 규칙이 달라 기본으로 숨김 (선택은 브라우저에 기억)
-  let includeArena = false;
-  try { includeArena = localStorage.getItem('mayhem.includeArena') === '1'; } catch (e) {}
-  const arenaToggle = document.getElementById('arenaToggle');
-  const arenaToggleInput = document.getElementById('arenaToggleInput');
-  const arenaToggleCount = document.getElementById('arenaToggleCount');
-  function updateArenaToggle(count) {
-    if (!arenaToggle) return;
-    arenaToggle.classList.toggle('hidden', count === 0);
-    arenaToggleInput.checked = includeArena;
-    arenaToggleCount.textContent = count;
-  }
-  if (arenaToggleInput) {
-    arenaToggleInput.addEventListener('change', () => {
-      includeArena = arenaToggleInput.checked;
-      try { localStorage.setItem('mayhem.includeArena', includeArena ? '1' : '0'); } catch (e) {}
-      if (currentSummoner?.puuid) fetchMatches(currentSummoner.puuid, { keepFilters: true });
-    });
-  }
-
   // 서버의 경량 포맷(ID만 포함)을 렌더링용 객체 구조로 복원
   function hydrateGames(games, meta) {
     if (!meta) return games;
@@ -501,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         champion: meta.champions[p.championId] || fallbackChamp(p.championId),
         spells: (p.spellIds || []).map(id => meta.spells[id] || null),
         items: (p.itemIds || []).map(id => (id > 0 ? meta.items[id] || null : null)),
-        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean), p.champLevel, g.isArena)
+        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean), p.champLevel)
       }));
       // 게임 종료 화면에서 받은 '팀원 보호막' 값이 있으면 회복·보호 칸에 포함
       if (participants.some(p => p.ext?.totalDamageShieldedOnTeammates !== undefined)) {

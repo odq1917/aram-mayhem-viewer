@@ -2,8 +2,9 @@ const lcu = require('./lcu-connector');
 const meta = require('./meta-manager');
 const historyStore = require('./history-store');
 
-// 협곡 랭크/일반, 봇전, 연습 모드 등 증강이 없는 큐는 상세 조회 생략
+// 협곡 랭크/일반, 봇전, 연습 모드 등 증강이 없는 큐와 아레나는 상세 조회 생략
 const NON_AUGMENT_QUEUES = [420, 440, 400, 430, 490, 830, 840, 850, 870, 880, 890, 3140];
+const isSkippedQueue = g => NON_AUGMENT_QUEUES.includes(g.queueId) || meta.isArenaGame(g);
 
 // 게임 종료 화면(EOG)에만 있는 값 → 경기 상세 ext 에 병합 (gameId → { puuid → 값 })
 const EOG_EXTRA_KEYS = ['totalDamageShieldedOnTeammates', 'totalHealsOnTeammates', 'totalTimeSpentDead'];
@@ -70,7 +71,7 @@ function syncMatches(puuid) {
     const historyRes = await lcu.getMatchList(puuid, 0, 40);
     const rawGames = historyRes?.games?.games || [];
     const windowOldestTime = rawGames.length ? Math.min(...rawGames.map(g => g.gameCreation || Infinity)) : null;
-    const candidateGames = rawGames.filter(g => !NON_AUGMENT_QUEUES.includes(g.queueId));
+    const candidateGames = rawGames.filter(g => !isSkippedQueue(g));
 
     const existing = historyStore.getHistory(puuid);
     const prevIds = new Set(existing.games.filter(g => !g.isGap).map(g => String(g.gameId)));

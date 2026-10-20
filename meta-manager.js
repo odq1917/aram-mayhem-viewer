@@ -25,6 +25,17 @@ const EXTRA_STAT_KEYS = [
   'firstBloodAssist'
 ];
 
+// 아레나(사투의 전장)는 이 전적 검색기에서 다루지 않음 (증강 규칙이 달라 통계를 흐림)
+function isArenaGame(game) {
+  if (!game) return false;
+  return game.isArena === true ||
+    game.gameMode === 'CHERRY' ||
+    game.mapId === 30 ||
+    (game.queueId >= 1700 && game.queueId < 1800) ||
+    (typeof game.subType === 'string' && game.subType.toUpperCase().includes('CHERRY')) ||
+    (typeof game.gameModeName === 'string' && game.gameModeName.includes('아레나'));
+}
+
 class MetaManager {
   constructor() {
     this.cacheDir = path.join(__dirname, 'cache');
@@ -477,7 +488,7 @@ class MetaManager {
 
   // 게임 상세 데이터 풍부화(Enrichment)
   enrichGameData(game, targetPuuid = null) {
-    if (!game) return null;
+    if (!game || isArenaGame(game)) return null;
 
     // 솔랭(420), 자랭(440), 일반(400, 430), 봇전(830-850) 등은 명확히 제외
     const standardExcludes = [420, 440, 400, 430, 830, 840, 850, 490];
@@ -623,32 +634,24 @@ class MetaManager {
       p.killParticipation = teamKills > 0 ? Math.round(((p.kills + p.assists) / teamKills) * 100) : 0;
     });
 
-    // [중요] 증강체 모드(아수라장 / 아레나) 유효성 검증
+    // [중요] 증강체 모드(아수라장) 유효성 검증
     // 1. 전체 참가자의 증강체 획득 총합 계산
     const totalAugmentsCount = participants.reduce((sum, p) => sum + (p.augments?.length || 0), 0);
 
-    // 2. 공식 아수라장 큐(2400, 2450)나 공식 아레나 큐(1700, 1710)가 아니면서 증강체가 0개인 판은 배제
-    const isOfficialAugmentQueue = [2400, 2450, 1700, 1710].includes(game.queueId);
+    // 2. 공식 아수라장 큐(2400, 2450)가 아니면서 증강체가 0개인 판은 배제
+    const isOfficialAugmentQueue = [2400, 2450].includes(game.queueId);
     if (totalAugmentsCount === 0 && !isOfficialAugmentQueue) {
       return null;
     }
 
-    // 3. 사용자 지정 게임(CUSTOM_GAME)인데 증강체가 0개이거나 맵이 칼바람(12)/사투의전장(30)이 아니면 배제
-    if (game.gameType === 'CUSTOM_GAME' && (totalAugmentsCount === 0 || ![12, 30].includes(game.mapId))) {
+    // 3. 사용자 지정 게임(CUSTOM_GAME)인데 증강체가 0개이거나 맵이 칼바람(12)이 아니면 배제
+    if (game.gameType === 'CUSTOM_GAME' && (totalAugmentsCount === 0 || game.mapId !== 12)) {
       return null;
     }
 
-    // 모드 판별 (아레나 vs 아수라장 클래식 vs 아수라장)
-    // 1. 아레나 판별 (CHERRY 모드 / 큐 1700, 1710 / 맵 30)
-    const isArena = game.gameMode === 'CHERRY' ||
-      game.queueId === 1700 ||
-      game.queueId === 1710 ||
-      game.mapId === 30 ||
-      (game.subType && typeof game.subType === 'string' && game.subType.toUpperCase().includes('CHERRY')) ||
-      (game.gameModeName && typeof game.gameModeName === 'string' && game.gameModeName.includes('아레나'));
-
-    // 2. 아수라장 클래식 판별 (KIWI_JADE / 큐 2450 / CLASSIC)
-    const isMayhemClassic = !isArena && (
+    // 모드 판별 (아수라장 클래식 vs 아수라장)
+    // 아수라장 클래식 판별 (KIWI_JADE / 큐 2450 / CLASSIC)
+    const isMayhemClassic = (
       game.isMayhemClassic === true ||
       game.gameMode === 'KIWI_JADE' ||
       game.queueId === 2450 ||
@@ -658,13 +661,7 @@ class MetaManager {
       (game.gameModeName && typeof game.gameModeName === 'string' && game.gameModeName.includes('클래식'))
     );
 
-    // 3. 최종 모드 명칭 부여
-    let modeName = '아수라장';
-    if (isArena) {
-      modeName = '아레나';
-    } else if (isMayhemClassic) {
-      modeName = '아수라장 클래식';
-    }
+    const modeName = isMayhemClassic ? '아수라장 클래식' : '아수라장';
 
     return {
       gameId: game.gameId,
@@ -674,8 +671,7 @@ class MetaManager {
       gameMode: game.gameMode,
       gameType: game.gameType,
       queueId: game.queueId,
-      isAramMayhem: !isArena,
-      isArena,
+      isAramMayhem: true,
       isMayhemClassic,
       isRemake,
       modeName,
@@ -693,3 +689,4 @@ class MetaManager {
 }
 
 module.exports = new MetaManager();
+module.exports.isArenaGame = isArenaGame;

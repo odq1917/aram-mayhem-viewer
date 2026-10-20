@@ -38,8 +38,14 @@ class HistoryStore {
         const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
         const games = data.games || [];
         const needsMigration = games.some(g => !g.isGap && g.participants?.[0] && !g.participants[0].itemIds);
-        data.games = games.map(g => meta.compactGame(g));
-        if (needsMigration) {
+        // 예전에 저장된 아레나 경기는 영구 삭제
+        const arenaCount = games.filter(g => !g.isGap && meta.isArenaGame(g)).length;
+        data.games = games.filter(g => g.isGap || !meta.isArenaGame(g)).map(g => meta.compactGame(g));
+        if (arenaCount > 0) {
+          data.totalGamesCount = data.games.filter(g => !g.isGap).length;
+          this.writeJsonAtomic(filePath, data);
+          console.log(`[HistoryStore] ${puuid} 아레나 경기 ${arenaCount}개 삭제`);
+        } else if (needsMigration) {
           const before = fs.statSync(filePath).size;
           this.writeJsonAtomic(filePath, data);
           console.log(`[HistoryStore] ${puuid} 저장 포맷 경량화: ${(before / 1e6).toFixed(1)}MB → ${(fs.statSync(filePath).size / 1e6).toFixed(1)}MB`);

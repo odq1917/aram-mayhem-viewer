@@ -2636,22 +2636,3 @@ body {
   font-size: 11.5px;
   line-height: 1.45;
 }
-
-/* 아레나 포함 토글 */
-.arena-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary, #94a3b8);
-  font-size: 12px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.arena-toggle input {
-  accent-color: #a855f7;
-  cursor: pointer;
-}

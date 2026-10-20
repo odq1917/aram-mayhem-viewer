@@ -70,3 +70,10 @@ test('compactGame: 풍부화 포맷을 ID 포맷으로 변환하고 재변환해
   });
   assert.deepEqual(meta.compactGame(compact), compact);
 });
+
+test('아레나 경기는 저장·표시 대상에서 제외', () => {
+  assert.equal(meta.isArenaGame({ queueId: 1750, mapId: 30, gameMode: 'CHERRY' }), true);
+  assert.equal(meta.isArenaGame({ queueId: 1740 }), true);
+  assert.equal(meta.isArenaGame({ queueId: 2400, mapId: 12, gameMode: 'KIWI' }), false);
+  assert.equal(meta.enrichGameData({ queueId: 1750, mapId: 30, gameMode: 'CHERRY', participants: [] }), null);
+});
