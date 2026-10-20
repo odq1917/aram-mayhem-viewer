@@ -75,4 +75,25 @@ function migrateLegacyData(appDir) {
   return result;
 }
 
-module.exports = { DATA_DIR, HISTORY_DIR, RECENT_SEARCHES_FILE, WATCHLIST_FILE, migrateLegacyData };
+// 하루 한 번 누적 전적 백업 (data/backups/YYYY-MM-DD, 최근 keep일치만 보관)
+// 업데이트나 저장 형식 변경 중 문제가 생겨도 기록을 되살릴 수 있도록
+function backupDaily(keep = 3) {
+  if (!fs.existsSync(HISTORY_DIR)) return null;
+  const root = path.join(DATA_DIR, 'backups');
+  const today = new Date().toLocaleDateString('sv-SE'); // 내 PC 날짜 기준 YYYY-MM-DD
+  const dest = path.join(root, today);
+  if (fs.existsSync(dest)) return null;
+
+  fs.mkdirSync(dest, { recursive: true });
+  fs.cpSync(HISTORY_DIR, path.join(dest, 'history'), { recursive: true });
+  if (fs.existsSync(RECENT_SEARCHES_FILE)) fs.copyFileSync(RECENT_SEARCHES_FILE, path.join(dest, 'recent_searches.json'));
+  if (fs.existsSync(WATCHLIST_FILE)) fs.copyFileSync(WATCHLIST_FILE, path.join(dest, 'auto-refresh.txt'));
+
+  const days = fs.readdirSync(root).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  for (const old of days.slice(0, Math.max(0, days.length - keep))) {
+    fs.rmSync(path.join(root, old), { recursive: true, force: true });
+  }
+  return dest;
+}
+
+module.exports = { DATA_DIR, HISTORY_DIR, RECENT_SEARCHES_FILE, WATCHLIST_FILE, migrateLegacyData, backupDaily };

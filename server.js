@@ -18,6 +18,14 @@ try {
   console.warn('[DataDir] 기존 기록 이전 실패:', e.message);
 }
 
+// 하루 한 번 누적 전적 자동 백업
+try {
+  const backup = dataDir.backupDaily();
+  if (backup) console.log(`[DataDir] 오늘자 전적 백업 → ${backup}`);
+} catch (e) {
+  console.warn('[DataDir] 전적 백업 실패:', e.message);
+}
+
 const { version: APP_VERSION } = require('./package.json');
 
 // 백그라운드 작업에서 놓친 오류로 서버 전체가 죽지 않도록 기록만 남김

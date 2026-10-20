@@ -5,7 +5,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mayhem-gg-datadir-'));
 process.env.MAYHEM_DATA_DIR = path.join(root, 'userdata');
 const test = require('node:test');
 const assert = require('node:assert');
-const { migrateLegacyData, HISTORY_DIR, RECENT_SEARCHES_FILE } = require('../data-dir');
+const { migrateLegacyData, backupDaily, DATA_DIR, HISTORY_DIR, RECENT_SEARCHES_FILE } = require('../data-dir');
 
 const games = n => JSON.stringify({ games: Array.from({ length: n }, (_, i) => ({ gameId: i })) });
 
@@ -29,4 +29,15 @@ test('구버전 프로그램 폴더 기록을 사용자 데이터 폴더로 이�
 
   // 두 번째 실행은 아무 것도 하지 않음
   assert.deepEqual(migrateLegacyData(app), { movedFiles: 0, mergedSearches: 0 });
+});
+
+test('하루 한 번 전적 백업, 최근 3일치만 보관', () => {
+  const root = path.join(DATA_DIR, 'backups');
+  fs.mkdirSync(HISTORY_DIR, { recursive: true });
+  for (const d of ['2000-01-01', '2000-01-02', '2000-01-03']) fs.mkdirSync(path.join(root, d), { recursive: true });
+  const dest = backupDaily(3);
+  assert.ok(dest && fs.existsSync(path.join(dest, 'history', 'a.json')), '오늘자 백업에 기록 포함');
+  assert.equal(backupDaily(3), null, '같은 날 두 번째는 건너뜀');
+  assert.deepEqual(fs.readdirSync(root).sort().slice(0, 2), ['2000-01-02', '2000-01-03']);
+  assert.equal(fs.readdirSync(root).length, 3);
 });
