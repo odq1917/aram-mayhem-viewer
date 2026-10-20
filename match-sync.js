@@ -28,10 +28,13 @@ async function mapLimit(list, limit, fn) {
 const locks = new Map();
 function withLock(puuid, fn) {
   const prev = locks.get(puuid) || Promise.resolve();
-  const run = prev.catch(() => {}).then(fn);
-  locks.set(puuid, run.finally(() => {
-    if (locks.get(puuid) === run) locks.delete(puuid);
-  }));
+  const run = prev.then(fn);
+  // 잠금 체인에는 실패를 삼킨 promise만 보관 (실패는 호출자가 run 으로 받음 → 처리 안 된 거부로 서버가 죽지 않도록)
+  const settled = run.catch(() => {});
+  locks.set(puuid, settled);
+  settled.then(() => {
+    if (locks.get(puuid) === settled) locks.delete(puuid);
+  });
   return run;
 }
 

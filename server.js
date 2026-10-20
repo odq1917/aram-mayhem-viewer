@@ -20,6 +20,11 @@ try {
 
 const { version: APP_VERSION } = require('./package.json');
 
+// 백그라운드 작업에서 놓친 오류로 서버 전체가 죽지 않도록 기록만 남김
+process.on('unhandledRejection', (err) => {
+  console.warn('[Server] 처리되지 않은 오류:', err?.message || err);
+});
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3500;
 const HOST = '127.0.0.1';
