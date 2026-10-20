@@ -1016,8 +1016,10 @@ body {
   border: 1px solid var(--border-color);
   overflow: hidden;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-  animation: fadeIn 0.3s ease;
   width: 100%;
+  /* 화면 밖 카드는 레이아웃/페인트 생략 (수백 경기 필터 시 렉 방지) */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 128px;
   margin-left: 0;
   position: relative;
   transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
@@ -1458,7 +1460,12 @@ body {
   gap: 16px;
   margin: 10px 0;
   padding: 12px 0;
-  animation: fadeIn 0.4s ease;
+}
+
+/* 페이드인은 목록을 새로 그릴 때만 (필터로 다시 보일 때마다 수백 장이 재생되지 않도록) */
+.match-list.is-entering .match-card,
+.match-list.is-entering .gap-divider {
+  animation: fadeIn 0.3s ease;
 }
 
 .gap-line {
@@ -1565,7 +1572,7 @@ body {
 
 .detail-table-header {
   display: grid;
-  grid-template-columns: minmax(85px, 1fr) 52px 90px 68px 68px 68px 126px;
+  grid-template-columns: minmax(70px, 1fr) 52px 90px 68px 68px 68px 126px;
   align-items: center;
   gap: 6px;
   padding: 4px 6px;
@@ -1587,7 +1594,7 @@ body {
 /* 10인 플레이어 순차 시차(Staggered Fade-in) 등장 모션 */
 .detail-player-row {
   display: grid;
-  grid-template-columns: minmax(85px, 1fr) 52px 90px 68px 68px 68px 126px;
+  grid-template-columns: minmax(70px, 1fr) 52px 90px 68px 68px 68px 126px;
   align-items: center;
   gap: 6px;
   padding: 5px 6px;
@@ -2303,4 +2310,83 @@ body {
 
 .update-badge:hover {
   background: rgba(168, 85, 247, 0.32);
+}
+
+.profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-refresh-matches {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-refresh-matches:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.24);
+}
+
+.btn-refresh-matches:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-refresh-matches svg {
+  width: 13px;
+  height: 13px;
+}
+
+.btn-refresh-matches.is-loading svg {
+  animation: spin 0.8s linear infinite;
+}
+
+.refresh-status {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+/* 증강 5~6개: 카드 증강 칸(225px) 안에 모두 들어가도록 축소 */
+.augment-slots-grid.many-5,
+.augment-slots-grid.many-6 {
+  gap: 3px;
+}
+.augment-slots-grid.many-5 .aug-slot-wrapper { width: 40px; }
+.augment-slots-grid.many-5 .augment-slot { width: 38px; height: 38px; border-radius: 9px; }
+.augment-slots-grid.many-6 .aug-slot-wrapper { width: 34px; }
+.augment-slots-grid.many-6 .augment-slot { width: 33px; height: 33px; border-radius: 8px; }
+.augment-slots-grid.many-5 .aug-name-label,
+.augment-slots-grid.many-6 .aug-name-label {
+  width: 100%;
+  max-width: 100%;
+  font-size: 7.6px;
+  letter-spacing: -0.6px;
+}
+
+/* 상세 표 증강 칸(90px): 개수에 맞춰 아이콘 축소 */
+.player-augments-mini.many-5 { gap: 1px; }
+.player-augments-mini.many-5 .aug-mini-slot { width: 17px; height: 17px; }
+.player-augments-mini.many-6 { gap: 1px; }
+.player-augments-mini.many-6 .aug-mini-slot { width: 14px; height: 14px; border-radius: 3px; }
+
+/* 상세 표: 화면 폭이 아니라 카드 폭 기준으로 1열/2열 전환 (1280px 화면에서 아이템 열이 잘리던 문제) */
+.detail-drawer-inner {
+  container-type: inline-size;
+}
+@container (max-width: 1235px) {
+  .detail-teams-container {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
 }

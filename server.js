@@ -40,6 +40,25 @@ app.param('gameId', (req, res, next, value) => {
   next();
 });
 
+// 자동 종료: 대시보드 페이지가 하나도 열려 있지 않은 채 일정 시간이 지나면 서버 종료
+// (열린 페이지는 10초마다 /api/status 를 호출하므로, API 요청이 끊기면 페이지가 없는 것으로 판단)
+// IDLE_SHUTDOWN_MIN 환경변수로 조정 가능, 0 이면 비활성화
+const IDLE_SHUTDOWN_MIN = process.env.IDLE_SHUTDOWN_MIN !== undefined ? Number(process.env.IDLE_SHUTDOWN_MIN) : 60;
+let lastApiActivity = Date.now();
+app.use('/api', (req, res, next) => {
+  lastApiActivity = Date.now();
+  next();
+});
+if (IDLE_SHUTDOWN_MIN > 0) {
+  const idleMs = IDLE_SHUTDOWN_MIN * 60 * 1000;
+  setInterval(() => {
+    if (Date.now() - lastApiActivity > idleMs) {
+      console.log(`[AutoShutdown] ${IDLE_SHUTDOWN_MIN}분 동안 열린 페이지가 없어 서버를 종료합니다.`);
+      process.exit(0);
+    }
+  }, Math.min(60 * 1000, Math.max(1000, idleMs / 4))).unref();
+}
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -216,7 +235,10 @@ app.get('/api/matches/:puuid', async (req, res) => {
 
     // 2. 이미 저장된 경기는 상세 재조회 생략 (경기 결과는 바뀌지 않음)
     const existing = historyStore.getHistory(puuid);
-    const savedIds = new Set(existing.games.filter(g => !g.isGap).map(g => String(g.gameId)));
+    // 단, 추가 스탯(ext)이 없는 구버전 저장 경기는 LCU에 남아 있는 동안 1회 다시 받아 보충
+    const savedIds = new Set(existing.games
+      .filter(g => !g.isGap && g.participants?.[0]?.ext)
+      .map(g => String(g.gameId)));
     const toFetch = candidateGames.filter(g => !savedIds.has(String(g.gameId)));
 
     let failed = 0;
@@ -230,6 +252,8 @@ app.get('/api/matches/:puuid', async (req, res) => {
       }
     });
     const newGames = enriched.filter(Boolean);
+    const prevIds = new Set(existing.games.filter(g => !g.isGap).map(g => String(g.gameId)));
+    const addedCount = newGames.filter(g => !prevIds.has(String(g.gameId))).length;
 
     // 상세 조회 실패 경기가 있으면 공백 판정을 보수적으로 (다음 조회 때 다시 시도됨)
     const savedRecord = historyStore.saveHistory(puuid, null, newGames, failed ? null : windowOldestTime);
@@ -239,7 +263,7 @@ app.get('/api/matches/:puuid', async (req, res) => {
     sendHistory(res, puuid, savedRecord, {
       liveCount,
       cachedCount: savedRecord.totalGamesCount - liveCount,
-      newCount: newGames.length
+      newCount: addedCount
     });
   } catch (err) {
     console.error('매치 히스토리 조회 실패:', err.message);

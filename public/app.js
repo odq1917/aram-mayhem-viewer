@@ -223,9 +223,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 5. 매치 히스토리 요청
-  async function fetchMatches(puuid) {
-    showLoading(true);
-    matchListContainer.innerHTML = '';
+  // keepFilters: 전적 갱신 시 기존 목록과 검색 조건을 유지한 채 새 데이터로 교체
+  async function fetchMatches(puuid, { keepFilters = false } = {}) {
+    const savedFilters = keepFilters ? {
+      champ: matchChampionSearchInput?.value || '',
+      aug: matchAugmentSearchInput?.value || '',
+      exactChamp: selectedExactChamp
+    } : null;
+
+    if (!keepFilters) {
+      showLoading(true);
+      matchListContainer.innerHTML = '';
+    }
     emptyState.classList.add('hidden');
     const emptyMsg = emptyState.querySelector('p');
     if (emptyMsg) emptyMsg.textContent = '롤 클라이언트에서 증강 칼바람을 플레이한 후 다시 조회해보세요.';
@@ -258,14 +267,47 @@ document.addEventListener('DOMContentLoaded', () => {
       renderChampDropdown('');
       initMatchListDom(currentGames);
       updateProfileStats(currentGames, '');
+
+      if (savedFilters && (savedFilters.champ || savedFilters.aug)) {
+        selectedExactChamp = savedFilters.exactChamp;
+        if (matchChampionSearchInput) matchChampionSearchInput.value = savedFilters.champ;
+        if (matchAugmentSearchInput) matchAugmentSearchInput.value = savedFilters.aug;
+        applyMatchFilters(true);
+      }
+      return data;
     } catch (err) {
       console.error('매치 조회 실패:', err);
       const emptyMsg = emptyState.querySelector('p');
       if (emptyMsg) emptyMsg.textContent = err.message;
       emptyState.classList.remove('hidden');
+      return null;
     } finally {
-      showLoading(false);
+      if (!keepFilters) showLoading(false);
     }
+  }
+
+  // 전적 갱신 버튼 (게임 종료 후 최신 경기 반영)
+  const btnRefreshMatches = document.getElementById('btnRefreshMatches');
+  const refreshStatusEl = document.getElementById('refreshStatus');
+  if (btnRefreshMatches) {
+    btnRefreshMatches.addEventListener('click', async () => {
+      if (!currentSummoner?.puuid || btnRefreshMatches.disabled) return;
+      btnRefreshMatches.disabled = true;
+      btnRefreshMatches.classList.add('is-loading');
+      refreshStatusEl.textContent = '갱신 중...';
+      const data = await fetchMatches(currentSummoner.puuid, { keepFilters: true });
+      btnRefreshMatches.disabled = false;
+      btnRefreshMatches.classList.remove('is-loading');
+      if (!data) {
+        refreshStatusEl.textContent = '갱신 실패';
+      } else if (data.offline) {
+        refreshStatusEl.textContent = '롤 클라이언트 미실행';
+      } else {
+        refreshStatusEl.textContent = data.newCount > 0 ? `새 경기 ${data.newCount}개 추가` : '새 경기 없음';
+      }
+      clearTimeout(refreshStatusEl._timer);
+      refreshStatusEl._timer = setTimeout(() => { refreshStatusEl.textContent = ''; }, 5000);
+    });
   }
 
   // 서버의 경량 포맷(ID만 포함)을 렌더링용 객체 구조로 복원
@@ -611,7 +653,10 @@ document.addEventListener('DOMContentLoaded', () => {
     filterEmptyEl.className = 'empty-state hidden';
     frag.appendChild(filterEmptyEl);
 
+    matchListContainer.classList.add('is-entering');
     matchListContainer.appendChild(frag);
+    clearTimeout(initMatchListDom.enterTimer);
+    initMatchListDom.enterTimer = setTimeout(() => matchListContainer.classList.remove('is-entering'), 400);
   }
 
   // 한글 조합 중 미완성 단일 자모(ㄱ~ㅎ, ㅏ~ㅣ) 처리 헬퍼
@@ -812,7 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="col-augments">
           <span class="augment-label-bar">${SVG_SPARKLES} 장착 증강체</span>
-          <div class="augment-slots-grid">
+          <div class="augment-slots-grid${(p.augments || []).length > 4 ? ` many-${Math.min(p.augments.length, 6)}` : ''}">
             ${augmentsHtml}
           </div>
         </div>
@@ -889,9 +934,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return name;
   }
 
+  // 증강은 보통 4개지만 전환: 혼돈 / 나는 왕이다 등으로 최대 6개까지 획득 가능
   function renderAugmentSlotsHtml(augments) {
     let html = '';
-    for (let i = 0; i < 4; i++) {
+    const slotCount = Math.max(4, Math.min(augments.length, 6));
+    for (let i = 0; i < slotCount; i++) {
       const aug = augments[i];
       if (aug) {
         const shortName = getShortAugName(aug.name);
@@ -985,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${leaverBadgeHtml}
           </div>
           <div class="player-kda-text">${p.kills}/${p.deaths}/${p.assists}</div>
-          <div class="player-augments-mini">${augsMini}</div>
+          <div class="player-augments-mini${(p.augments || []).length > 4 ? ` many-${Math.min(p.augments.length, 6)}` : ''}">${augsMini}</div>
           
           <div class="player-stat-cell dealt" title="가한 피해: ${(p.totalDamage || 0).toLocaleString()} (물리 ${(p.physicalDamage || 0).toLocaleString()} / 마법 ${(p.magicDamage || 0).toLocaleString()} / 고정 ${(p.trueDamage || 0).toLocaleString()})">
             <span class="stat-num">${(p.totalDamage || 0).toLocaleString()}</span>

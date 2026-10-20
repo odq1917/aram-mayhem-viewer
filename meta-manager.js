@@ -1,6 +1,30 @@
 const fs = require('fs');
 const path = require('path');
 
+// 경기 상세에 함께 저장하는 추가 스탯 (LCU stats 필드명 그대로)
+const EXTRA_STAT_KEYS = [
+  'damageSelfMitigated',        // 피해 감소량
+  'timeCCingOthers',            // CC 점수(초)
+  'totalTimeCrowdControlDealt', // 총 CC 시간
+  'totalDamageDealt',           // 챔피언 외 포함 총 피해
+  'damageDealtToTurrets',       // 포탑 피해
+  'physicalDamageTaken',
+  'magicalDamageTaken',
+  'trueDamageTaken',
+  'totalUnitsHealed',
+  'largestCriticalStrike',
+  'largestMultiKill',
+  'largestKillingSpree',
+  'doubleKills',
+  'tripleKills',
+  'quadraKills',
+  'pentaKills',
+  'longestTimeSpentLiving',
+  'goldSpent',
+  'firstBloodKill',
+  'firstBloodAssist'
+];
+
 class MetaManager {
   constructor() {
     this.cacheDir = path.join(__dirname, 'cache');
@@ -554,7 +578,9 @@ class MetaManager {
         isLeaver: Boolean(stats.leaver || stats.causedEarlySurrender),
         causedEarlySurrender: Boolean(stats.causedEarlySurrender),
         earlySurrender: Boolean(stats.earlySurrender || stats.gameEndedInEarlySurrender),
-        isTarget: targetPuuid ? summoner.puuid === targetPuuid : false
+        isTarget: targetPuuid ? summoner.puuid === targetPuuid : false,
+        // 추가 스탯 (LCU는 최근 약 40경기만 제공하므로 지금부터 모아 둠)
+        ext: Object.fromEntries(EXTRA_STAT_KEYS.map(k => [k, Number(stats[k]) || 0]))
       };
 
       if (participantData.isTarget) {
@@ -644,6 +670,7 @@ class MetaManager {
       gameId: game.gameId,
       gameCreation: game.gameCreation,
       gameDuration: game.gameDuration,
+      gameVersion: game.gameVersion,
       gameMode: game.gameMode,
       gameType: game.gameType,
       queueId: game.queueId,
