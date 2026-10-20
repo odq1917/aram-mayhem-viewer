@@ -291,6 +291,21 @@
     </div>
   </div>
 
+  <!-- 경기 전체 스탯 모달 -->
+  <div id="fullStatsModal" class="modal-overlay hidden">
+    <div class="modal-content full-stats-modal-content">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="table-2" class="modal-icon"></i>
+          <h2>경기 전체 스탯</h2>
+          <span id="fullStatsSubtitle" class="stats-subtitle"></span>
+        </div>
+        <button id="btnCloseFullStats" class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div id="fullStatsBody" class="full-stats-body"></div>
+    </div>
+  </div>
+
   <!-- 통계 모달 -->
   <div id="statsModal" class="modal-overlay hidden">
     <div class="modal-content stats-modal-content">
@@ -306,6 +321,7 @@
         <button class="stats-tab active" data-tab="augments">증강별 승률</button>
         <button class="stats-tab" data-tab="allies">함께한 소환사</button>
         <button class="stats-tab" data-tab="patches">패치별 승률</button>
+        <button class="stats-tab" data-tab="unknown">미확인 증강</button>
       </div>
       <div id="statsBody" class="stats-body"></div>
     </div>

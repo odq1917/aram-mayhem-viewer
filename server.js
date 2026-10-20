@@ -264,6 +264,36 @@ app.get('/api/match/:gameId', async (req, res) => {
   }
 });
 
+// 5-0. 경기 원본 스탯 전체 (상세 스탯 창용, 롤 클라이언트에서 그때그때 조회)
+// 아이템·룬·증강 칸 같은 화면에 이미 나오는 값과 의미 없는 내부 값만 빼고 숫자/참거짓 스탯을 전부 돌려줌
+const STAT_EXCLUDE = /^(item\d|perk|playerAugment|playerScore|participantId$|playerSubteamId$|subteamPlacement$|roleBoundItem$|combatPlayerScore$|objectivePlayerScore$|totalPlayerScore$|totalScoreRank$)/;
+app.get('/api/match/:gameId/stats', async (req, res) => {
+  try {
+    const detail = await lcu.getGameDetail(req.params.gameId);
+    const identities = Object.fromEntries((detail.participantIdentities || []).map(pi => [pi.participantId, pi.player || {}]));
+    const players = (detail.participants || []).map(p => {
+      const who = identities[p.participantId] || {};
+      const stats = {};
+      for (const [k, v] of Object.entries(p.stats || {})) {
+        if (STAT_EXCLUDE.test(k)) continue;
+        if (typeof v === 'number' || typeof v === 'boolean') stats[k] = v;
+      }
+      return {
+        participantId: p.participantId,
+        teamId: p.teamId,
+        puuid: who.puuid || '',
+        gameName: who.gameName || who.summonerName || '',
+        tagLine: who.tagLine || '',
+        championId: p.championId,
+        stats
+      };
+    });
+    res.json({ gameId: detail.gameId, gameDuration: detail.gameDuration, gameVersion: detail.gameVersion, players });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
 // 5-1. 자동 갱신 목록 (데이터 폴더의 auto-refresh.txt)
 app.get('/api/watchlist', (req, res) => {
   res.json({ entries: autoRefresher.readWatchlist(), file: dataDir.WATCHLIST_FILE });

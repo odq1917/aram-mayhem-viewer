@@ -18,12 +18,13 @@
   --win-bg: rgba(14, 116, 144, 0.2);
   --win-border: rgba(6, 182, 212, 0.4);
   --win-color: #38bdf8;
-  --win-gradient: linear-gradient(90deg, rgba(6, 182, 212, 0.15), transparent);
+  /* 카드 배경 페이드: 직선 대신 완만한 곡선으로 줄여 끝부분 색 단계 경계(띠)가 눈에 띄지 않게 */
+  --win-gradient: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.108) 22%, rgba(6, 182, 212, 0.063) 45%, rgba(6, 182, 212, 0.027) 68%, rgba(6, 182, 212, 0.007) 86%, rgba(6, 182, 212, 0) 100%);
 
   --loss-bg: rgba(185, 28, 28, 0.2);
   --loss-border: rgba(239, 68, 68, 0.4);
   --loss-color: #f87171;
-  --loss-gradient: linear-gradient(90deg, rgba(239, 68, 68, 0.15), transparent);
+  --loss-gradient: linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.108) 22%, rgba(239, 68, 68, 0.063) 45%, rgba(239, 68, 68, 0.027) 68%, rgba(239, 68, 68, 0.007) 86%, rgba(239, 68, 68, 0) 100%);
 
   --rarity-silver: #94a3b8;
   --rarity-gold: #f59e0b;
@@ -1071,7 +1072,7 @@ body {
 
 .match-card.remake {
   border-left: 5px solid #64748b;
-  background-image: linear-gradient(90deg, rgba(100, 116, 139, 0.15), transparent);
+  background-image: linear-gradient(90deg, rgba(100, 116, 139, 0.15) 0%, rgba(100, 116, 139, 0.108) 22%, rgba(100, 116, 139, 0.063) 45%, rgba(100, 116, 139, 0.027) 68%, rgba(100, 116, 139, 0.007) 86%, rgba(100, 116, 139, 0) 100%);
 }
 
 .match-summary-row {
@@ -1899,7 +1900,6 @@ body {
   font-size: 11px;
   font-weight: 800;
   flex-shrink: 0;
-} overflow: hidden;
 }
 
 .modal-header {
@@ -2490,7 +2490,7 @@ body {
 .stats-tabs {
   display: flex;
   gap: 6px;
-  padding: 0 24px 12px;
+  padding: 16px 24px 12px;
 }
 
 .stats-tab {
@@ -2511,7 +2511,10 @@ body {
 }
 
 .stats-body {
-  padding: 0 24px 24px;
+  flex: 1;
+  min-height: 0;
+  margin: 0 12px 16px 24px;
+  padding-right: 12px;
   overflow-y: auto;
   max-height: 60vh;
 }
@@ -2659,3 +2662,204 @@ body {
   font-size: 10px;
   font-weight: 500;
 }
+
+/* 스크롤바: 얇고 어두운 둥근 막대 (모달·상세 표·드롭다운 공통) */
+/* 크롬·엣지는 아래 ::-webkit-scrollbar 사용, 그 외(파이어폭스)만 표준 속성 */
+@supports not selector(::-webkit-scrollbar) {
+  .stats-body,
+  .dex-grid,
+  .match-detail-drawer {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+  }
+}
+
+.stats-body::-webkit-scrollbar,
+.dex-grid::-webkit-scrollbar,
+.match-detail-drawer::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.stats-body::-webkit-scrollbar-track,
+.dex-grid::-webkit-scrollbar-track,
+.match-detail-drawer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stats-body::-webkit-scrollbar-thumb,
+.dex-grid::-webkit-scrollbar-thumb,
+.match-detail-drawer::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.stats-body::-webkit-scrollbar-thumb:hover,
+.dex-grid::-webkit-scrollbar-thumb:hover,
+.match-detail-drawer::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.45);
+}
+
+.stats-body::-webkit-scrollbar-button,
+.dex-grid::-webkit-scrollbar-button,
+.match-detail-drawer::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* ===== 경기 전체 스탯 ===== */
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.btn-full-stats {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.1);
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-full-stats:hover {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+.full-stats-modal-content {
+  max-width: 1240px;
+}
+
+.full-stats-modal-content .modal-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.full-stats-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 16px 12px 16px 24px;
+  padding-right: 12px;
+}
+
+.fs-loading,
+.fs-notice {
+  padding: 10px 12px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.fs-notice {
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: rgba(250, 204, 21, 0.08);
+  color: #fde68a;
+}
+
+.fs-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+}
+
+.fs-table th,
+.fs-table td {
+  padding: 6px 8px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.fs-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #111827;
+  vertical-align: bottom;
+}
+
+.fs-table .fs-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 170px;
+  text-align: left;
+  color: var(--text-secondary, #94a3b8);
+  background: #111827;
+}
+
+.fs-table thead .fs-label {
+  z-index: 3;
+}
+
+.fs-player {
+  min-width: 84px;
+  max-width: 96px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.fs-player img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  margin: 0 0 4px auto;
+  border-radius: 50%;
+}
+
+.fs-player span {
+  display: block;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.fs-player.team-100 { box-shadow: inset 0 3px 0 rgba(56, 189, 248, 0.7); }
+.fs-player.team-200 { box-shadow: inset 0 3px 0 rgba(248, 113, 113, 0.7); }
+.fs-player.is-target span { color: #c4b5fd; }
+
+.fs-table td.team-100 { background: rgba(56, 189, 248, 0.025); }
+.fs-table td.team-200 { background: rgba(248, 113, 113, 0.025); }
+
+.fs-table tbody tr:hover td {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.fs-group td {
+  padding-top: 14px;
+  text-align: left !important;
+  color: #a78bfa;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: transparent !important;
+}
+
+.fs-max {
+  color: #fcd34d;
+  font-weight: 700;
+}
+
+.fs-yes { color: #4ade80; }
+.fs-na { color: rgba(148, 163, 184, 0.35); }
+
+.full-stats-body {
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.full-stats-body::-webkit-scrollbar { width: 8px; height: 8px; }
+.full-stats-body::-webkit-scrollbar-track { background: transparent; }
+.full-stats-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.full-stats-body::-webkit-scrollbar-button { display: none; }
+.full-stats-body::-webkit-scrollbar-corner { background: transparent; }

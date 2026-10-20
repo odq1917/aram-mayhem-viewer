@@ -1,5 +1,16 @@
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('./data-dir');
+
+// 배열 데이터를 id 기준으로 합침 (뒤쪽이 우선)
+function mergeById(...lists) {
+  const map = new Map();
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) if (entry && entry.id !== undefined) map.set(entry.id, entry);
+  }
+  return map.size ? [...map.values()] : null;
+}
 
 // 경기 상세에 함께 저장하는 추가 스탯 (LCU stats 필드명 그대로)
 const EXTRA_STAT_KEYS = [
@@ -36,6 +47,11 @@ function isArenaGame(game) {
     (typeof game.gameModeName === 'string' && game.gameModeName.includes('아레나'));
 }
 
+const RARITY_LABELS = { kSilver: '실버', kGold: '골드', kPrismatic: '프리즘' };
+const RARITY_CODES = { kSilver: 'silver', kGold: 'gold', kPrismatic: 'prismatic' };
+const DEFAULT_AUG_ICON = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg';
+const CACHE_REFRESH_MS = 12 * 60 * 60 * 1000; // 게임 데이터(증강·아이템 등) 12시간마다 다시 받기
+
 class MetaManager {
   constructor() {
     this.cacheDir = path.join(__dirname, 'cache');
@@ -66,35 +82,54 @@ class MetaManager {
     console.log(`[MetaManager] 메타데이터 초기화 완료! (증강체 ${Object.keys(this.augments).length}개 로드됨)`);
   }
 
-  async fetchWithCache(filename, url) {
-    const filePath = path.join(this.cacheDir, filename);
-    if (fs.existsSync(filePath)) {
+  // 배포본에 들어 있는 기본 데이터(cache/) + 사용자 데이터 폴더의 갱신본(cache/)을 id 기준으로 합쳐서 사용
+  // - 최신 데이터에서 빠진 예전 증강/아이템도 지난 경기 표시를 위해 계속 보관
+  // - 갱신본이 없거나 12시간 넘게 지났으면 백그라운드로 다시 받아 합친 뒤 onUpdate 로 반영
+  async fetchWithCache(filename, url, onUpdate) {
+    const readJson = p => {
       try {
-        const data = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(data);
-      } catch (e) {}
-    }
-
-    try {
-      console.log(`[MetaManager] CDN에서 다운로드 중: ${url}`);
-      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-      return data;
-    } catch (err) {
-      console.warn(`[MetaManager] 다운로드 실패 (${url}):`, err.message);
-      if (fs.existsSync(filePath)) {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+      } catch (e) {
+        return null;
       }
-      return null;
+    };
+    const userCacheDir = path.join(DATA_DIR, 'cache');
+    const userPath = path.join(userCacheDir, filename);
+    const merged = mergeById(readJson(path.join(this.cacheDir, filename)), readJson(userPath));
+
+    const stale = !fs.existsSync(userPath) || Date.now() - fs.statSync(userPath).mtimeMs > CACHE_REFRESH_MS;
+    if (stale || !merged) {
+      const refresh = (async () => {
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const fresh = mergeById(merged, await res.json());
+          fs.mkdirSync(userCacheDir, { recursive: true });
+          fs.writeFileSync(userPath, JSON.stringify(fresh), 'utf8');
+          return fresh;
+        } catch (err) {
+          console.warn(`[MetaManager] ${filename} 갱신 실패 (${err.message}) → 기존 데이터 사용`);
+          return null;
+        }
+      })();
+      if (!merged) return await refresh; // 처음 실행이고 기본 데이터도 없으면 기다림
+      refresh.then(fresh => {
+        if (fresh && onUpdate) {
+          onUpdate(fresh);
+          console.log(`[MetaManager] ${filename} 최신 데이터 반영`);
+        }
+      });
     }
+    return merged;
   }
 
   // 1. 증강체 목록 로드 (CommunityDragon + 나무위키 아수라장 효과 사전 결합)
   async loadAugments() {
     const url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/ko_kr/v1/cherry-augments.json';
-    const list = await this.fetchWithCache('cherry-augments.json', url);
+    this.buildAugments(await this.fetchWithCache('cherry-augments.json', url, fresh => this.buildAugments(fresh)));
+  }
+
+  buildAugments(list) {
 
     // 나무위키 아수라장 전용 효과 사전 로드
     let dict = {};
@@ -178,122 +213,33 @@ class MetaManager {
       };
     }
 
-    // 최신 신규 패치 증강체 ID 수동 매핑 (CDragon 미등록 신규 증강 대응 및 티어/아이콘 정정)
-    const customAugs = {
-      2141: {
-        id: 2141,
-        name: '궁극의 히드라',
-        description: '히드라 아이템을 완성하면 티아맷을 획득합니다.\n\n퀘스트: 거대한 히드라, 굶주린 히드라, 불경한 히드라를 보유해야 합니다.\n보상: 궁극의 히드라를 획득합니다.\n\n[궁극의 히드라 효과]\n공격력 200, 체력 1000, 스킬 가속 25, 물리 관통력 25, 모든 피해 흡혈 15%\n기본 공격 시 주변 적들에게 (80% AD + 2% 체력) 물리 피해를 입힙니다.\n사용 시 (10초): 다음 기본 공격이 강화되어 주변 적들에게 (160% AD) 물리 피해, 대상에게 (6% 체력) 및 뒤의 적들에게 (10% 체력) 물리 피해를 입힙니다.',
-        styledDescription: '히드라 아이템을 완성하면 티아맷을 획득합니다.<br><br><span class="stat-gold">퀘스트:</span> 거대한 히드라, 굶주린 히드라, 불경한 히드라를 보유해야 합니다.<br><span class="stat-gold">보상:</span> 궁극의 히드라를 획득합니다.<br><br><b>[궁극의 히드라 효과]</b><br><span class="stat-ad">공격력 +200</span> | <span class="stat-hp">체력 +1000</span> | <span class="stat-speed">스킬 가속 +25</span> | <span class="stat-crit">물리 관통력 +25</span> | <span class="stat-vamp">모든 피해 흡혈 15%</span><br>• 기본 공격 시 주변에 <span class="stat-ad">(80% AD + 2% 체력)</span>의 물리 피해.<br>• <b>사용 시 (10초):</b> 다음 공격이 강화되어 주변에 <span class="stat-ad">(160% AD)</span> 물리 피해, 적중 시 <span class="stat-hp">(6% 체력)</span> 및 대상 뒤 적들에게 <span class="stat-hp">(10% 체력)</span> 물리 피해.',
-        rarity: 'kPrismatic',
-        rarityLabel: '프리즘',
-        rarityCode: 'prismatic',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/ultrahydra_small.png'
-      },
-      2157: {
-        id: 2157,
-        name: '죽음의 무도 업그레이드',
-        description: '250골드를 획득합니다.\n\n[업그레이드된 죽음의 무도 효과]\n자신이 받은 피해의 (근접 40% / 원거리 15%)만큼을 3초에 걸쳐 나누어 입습니다.\n처치 관여 시 즉시 (추가 공격력의 125%)만큼 체력을 회복합니다.',
-        styledDescription: '<span class="stat-gold">250골드</span>를 획득합니다.<br><br><b>[업그레이드된 죽음의 무도 효과]</b><br>• 자신이 받은 피해의 <span class="stat-armor">(근접 40% / 원거리 15%)</span>만큼을 3초에 걸쳐 나누어 입습니다.<br>• <span class="stat-trigger">처치 관여 시</span> <b>즉시</b> <span class="stat-hp">(추가 공격력의 125%)</span>의 체력을 회복합니다.',
-        rarity: 'kSilver',
-        rarityLabel: '실버',
-        rarityCode: 'silver',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/upgradedeathdance_small.png'
-      },
-      1320: {
-        id: 1320,
-        name: '징수의 총 업그레이드',
-        description: '250골드를 획득합니다.\n\n[업그레이드된 징수의 총 효과]\n처형 시 추가 골드가 25골드에서 50골드로 증가합니다.\n적 처형 시마다 처형 기준치가 0.5%p씩 영구히 증가합니다. (기본 5% → 최대 12.5%)',
-        styledDescription: '<span class="stat-gold">250골드</span>를 획득합니다.<br><br><b>[업그레이드된 징수의 총 효과]</b><br>• <span class="stat-trigger">처형 시</span> 추가 골드가 25골드에서 <span class="stat-gold">50골드</span>로 증가합니다.<br>• 적 <span class="stat-trigger">처형 시</span>마다 처형 기준치가 <span class="stat-crit">0.5%p</span>씩 영구히 증가합니다. (기본 5% → 최대 <span class="stat-crit">12.5%</span>)',
-        rarity: 'kSilver',
-        rarityLabel: '실버',
-        rarityCode: 'silver',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/upgradecollector_small.png'
-      },
-      2010: {
-        id: 2010,
-        name: '한 발에 두 놈',
-        description: '치명타 발동 시 적중 시 효과를 한 번 더 적용합니다. 치명타 확률을 25% 얻습니다.',
-        styledDescription: '치명타 발동 시 <span class="stat-hit">적중 시 효과</span>를 한 번 더 적용합니다. <span class="stat-crit">치명타 확률 +25%</span>를 얻습니다.',
-        rarity: 'kPrismatic',
-        rarityLabel: '프리즘',
-        rarityCode: 'prismatic',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/cherry/augments/icons/dualwield_small.png'
-      },
-      156: {
-        id: 156,
-        name: '우글렛의 마녀 모자',
-        description: '즉시: 쓸데없이 큰 지팡이를 획득합니다.\n\n퀘스트: 라바돈의 죽음모자와 존야의 모래시계를 보유해야 합니다.\n보상: 우글렛의 마녀 모자를 획득합니다.\n\n[우글렛의 마녀 모자 효과]\n주문력 +300, 방어력 +50, 스킬 가속 +20\n고유 지속 효과: 총 주문력이 50% 증가합니다.\n고유 사용 효과 - 경직 (60초): 2.5초 동안 무적 및 대상으로 지정할 수 없는 상태가 됩니다.',
-        styledDescription: '<span class="stat-gold">즉시:</span> 쓸데없이 큰 지팡이를 획득합니다.<br><br><span class="stat-gold">퀘스트:</span> 라바돈의 죽음모자와 존야의 모래시계를 보유해야 합니다.<br><span class="stat-gold">보상:</span> 우글렛의 마녀 모자를 획득합니다.<br><br><b>[우글렛의 마녀 모자 효과]</b><br><span class="stat-ap">주문력 +300</span> | <span class="stat-armor">방어력 +50</span> | <span class="stat-speed">스킬 가속 +20</span><br>• <b>고유 지속 효과:</b> 총 주문력이 <span class="stat-ap">50%</span> 증가합니다.<br>• <b>고유 사용 효과 - <span class="stat-special">경직</span> (60초):</b> 2.5초 동안 <span class="stat-special">무적</span> 및 대상으로 지정할 수 없는 상태가 됩니다.',
-        rarity: 'kPrismatic',
-        rarityLabel: '프리즘',
-        rarityCode: 'prismatic',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/cherry/augments/icons/quest_woogletswitchcap_small.png'
-      },
-      1156: {
-        id: 1156,
-        name: '우글렛의 마녀 모자',
-        description: '즉시: 쓸데없이 큰 지팡이를 획득합니다.\n\n퀘스트: 라바돈의 죽음모자와 존야의 모래시계를 보유해야 합니다.\n보상: 우글렛의 마녀 모자를 획득합니다.\n\n[우글렛의 마녀 모자 효과]\n주문력 +300, 방어력 +50, 스킬 가속 +20\n고유 지속 효과: 총 주문력이 50% 증가합니다.\n고유 사용 효과 - 경직 (60초): 2.5초 동안 무적 및 대상으로 지정할 수 없는 상태가 됩니다.',
-        styledDescription: '<span class="stat-gold">즉시:</span> 쓸데없이 큰 지팡이를 획득합니다.<br><br><span class="stat-gold">퀘스트:</span> 라바돈의 죽음모자와 존야의 모래시계를 보유해야 합니다.<br><span class="stat-gold">보상:</span> 우글렛의 마녀 모자를 획득합니다.<br><br><b>[우글렛의 마녀 모자 효과]</b><br><span class="stat-ap">주문력 +300</span> | <span class="stat-armor">방어력 +50</span> | <span class="stat-speed">스킬 가속 +20</span><br>• <b>고유 지속 효과:</b> 총 주문력이 <span class="stat-ap">50%</span> 증가합니다.<br>• <b>고유 사용 효과 - <span class="stat-special">경직</span> (60초):</b> 2.5초 동안 <span class="stat-special">무적</span> 및 대상으로 지정할 수 없는 상태가 됩니다.',
-        rarity: 'kPrismatic',
-        rarityLabel: '프리즘',
-        rarityCode: 'prismatic',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/cherry/augments/icons/quest_woogletswitchcap_small.png'
-      },
-      2143: {
-        id: 2143,
-        name: '갈라진 하늘 업그레이드',
-        description: '갈라진 하늘의 대상별 재사용 대기시간이 5초로 감소하고 잃은 체력의 9%만큼 체력을 회복합니다.\n\n500골드를 획득합니다.',
-        styledDescription: '갈라진 하늘의 대상별 재사용 대기시간이 5초로 감소하고 잃은 <span class="stat-hp">체력</span>의 9%만큼 <span class="stat-hp">체력</span>을 회복합니다.<br><br><span class="stat-gold">500골드</span>를 획득합니다.',
-        rarity: 'kGold',
-        rarityLabel: '골드',
-        rarityCode: 'gold',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/cherry/augments/icons/vulnerability_small.png'
-      },
-      2140: {
-        id: 2140,
-        name: '굶주린 히드라 업그레이드',
-        description: '500골드를 획득합니다.\n\n[업그레이드된 굶주린 히드라 효과]\n생명력 흡수가 20%가 됩니다.\n적에게 스킬 적중 시 쪼개기 효과가 발동됩니다. (스킬당 재사용 대기시간 1초)',
-        styledDescription: '<span class="stat-gold">500골드</span>를 획득합니다.<br><br><b>[업그레이드된 굶주린 히드라 효과]</b><br>• 굶주린 히드라의 <span class="stat-vamp">생명력 흡수</span>가 <span class="stat-vamp">20%</span>가 됩니다.<br>• 적에게 <span class="stat-trigger">스킬 적중 시</span> 쪼개기 효과가 발동됩니다. (스킬당 재사용 대기시간 1초)',
-        rarity: 'kGold',
-        rarityLabel: '골드',
-        rarityCode: 'gold',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/upgradesheen_small.png'
-      },
-      154: {
-        id: 154,
-        name: '우르프의 챔피언',
-        description: '퀘스트: 적 챔피언 처치 관여 18회를 달성해야 합니다.\n보상: 퀘스트를 완료하면 황금 뒤집개를 획득합니다.\n\n[황금 뒤집개 효과]\n공격력 +90, 주문력 +110, 공격 속도 +40%, 치명타 확률 +15%, 체력 +200, 방어력 +20, 마법 저항력 +20, 마나 +200, 스킬 가속 +20, 이동 속도 +10%, 생명력 흡수 +10%, 기본 체력 재생 +50%, 기본 마나 재생 +100%\n\n고유 지속 효과 - 불이야!:\n근처 적에게 화상 효과를 적용하고 스킬 재사용 대기시간이 감소합니다. 적 챔피언을 향해 이동할 때 이동 속도가 증가하고 공격 속도 및 마나 재생 속도가 증가합니다. 하지만 입는 피해량이 증가하며, 받는 보호막과 회복 효과가 감소합니다.',
-        styledDescription: '<span class="stat-gold">퀘스트:</span> 적 챔피언 <span class="stat-trigger">처치 관여</span> 18회를 달성해야 합니다.<br><span class="stat-gold">보상:</span> 퀘스트를 완료하면 <b>황금 뒤집개</b>를 획득합니다.<br><br><b>[황금 뒤집개 스탯]</b><br>• <span class="stat-ad">공격력 +90</span> | <span class="stat-ap">주문력 +110</span> | <span class="stat-speed">공격 속도 +40%</span><br>• <span class="stat-crit">치명타 확률 +15%</span> | <span class="stat-hp">체력 +200</span> | <span class="stat-armor">방어력 +20</span><br>• <span class="stat-mr">마법 저항력 +20</span> | <span class="stat-speed">스킬 가속 +20</span> | <span class="stat-speed">이동 속도 +10%</span><br>• <span class="stat-vamp">생명력 흡수 +10%</span> | <span class="stat-hp">체력 재생 +50%</span> | 마나 재생 +100%<br><br><b>[고유 지속 효과 - 불이야!]</b><br>• 근처 적에게 <span class="stat-ap">화상 효과</span>를 적용하고 <span class="stat-speed">스킬 재사용 대기시간</span>이 감소합니다.<br>• 적 챔피언을 향해 이동할 때 <span class="stat-speed">이동 속도</span>가 증가하고 <span class="stat-speed">공격 속도</span> 및 마나 재생 속도가 증가합니다.<br>• <span style="color:#f87171;">[패널티]</span> 입는 피해량이 증가하며, 받는 보호막과 회복 효과가 감소합니다.',
-        rarity: 'kPrismatic',
-        rarityLabel: '프리즘',
-        rarityCode: 'prismatic',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/quest_urfschampion_small.png'
-      },
-      1154: {
-        id: 1154,
-        name: '우르프의 챔피언',
-        description: '퀘스트: 적 챔피언 처치 관여 18회를 달성해야 합니다.\n보상: 퀘스트를 완료하면 황금 뒤집개를 획득합니다.\n\n[황금 뒤집개 효과]\n공격력 +90, 주문력 +110, 공격 속도 +40%, 치명타 확률 +15%, 체력 +200, 방어력 +20, 마법 저항력 +20, 마나 +200, 스킬 가속 +20, 이동 속도 +10%, 생명력 흡수 +10%, 기본 체력 재생 +50%, 기본 마나 재생 +100%\n\n고유 지속 효과 - 불이야!:\n근처 적에게 화상 효과를 적용하고 스킬 재사용 대기시간이 감소합니다. 적 챔피언을 향해 이동할 때 이동 속도가 증가하고 공격 속도 및 마나 재생 속도가 증가합니다. 하지만 입는 피해량이 증가하며, 받는 보호막과 회복 효과가 감소합니다.',
-        styledDescription: '<span class="stat-gold">퀘스트:</span> 적 챔피언 <span class="stat-trigger">처치 관여</span> 18회를 달성해야 합니다.<br><span class="stat-gold">보상:</span> 퀘스트를 완료하면 <b>황금 뒤집개</b>를 획득합니다.<br><br><b>[황금 뒤집개 스탯]</b><br>• <span class="stat-ad">공격력 +90</span> | <span class="stat-ap">주문력 +110</span> | <span class="stat-speed">공격 속도 +40%</span><br>• <span class="stat-crit">치명타 확률 +15%</span> | <span class="stat-hp">체력 +200</span> | <span class="stat-armor">방어력 +20</span><br>• <span class="stat-mr">마법 저항력 +20</span> | <span class="stat-speed">스킬 가속 +20</span> | <span class="stat-speed">이동 속도 +10%</span><br>• <span class="stat-vamp">생명력 흡수 +10%</span> | <span class="stat-hp">체력 재생 +50%</span> | 마나 재생 +100%<br><br><b>[고유 지속 효과 - 불이야!]</b><br>• 근처 적에게 <span class="stat-ap">화상 효과</span>를 적용하고 <span class="stat-speed">스킬 재사용 대기시간</span>이 감소합니다.<br>• 적 챔피언을 향해 이동할 때 <span class="stat-speed">이동 속도</span>가 증가하고 <span class="stat-speed">공격 속도</span> 및 마나 재생 속도가 증가합니다.<br>• <span style="color:#f87171;">[패널티]</span> 입는 피해량이 증가하며, 받는 보호막과 회복 효과가 감소합니다.',
-        rarity: 'kPrismatic',
-        rarityLabel: '프리즘',
-        rarityCode: 'prismatic',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/quest_urfschampion_small.png'
-      }
-    };
-
-    for (const [id, cAug] of Object.entries(customAugs)) {
-      if (!isNaN(id)) {
-        this.augments[id] = cAug;
-      }
-      this.dexAugments[cAug.name] = cAug;
+    // data/overrides.json 에 직접 등록한 증강 (새 시즌 미등록 증강, 등급/아이콘 정정 등)
+    for (const [id, o] of Object.entries(this.loadOverrides().augments || {})) {
+      const base = this.augments[id] || {};
+      const rarity = o.rarity || base.rarity || 'kSilver';
+      const desc = (o.description || base.description || '효과 설명이 등록되지 않았습니다.').replace(/\[\d+\]/g, '').trim();
+      const merged = {
+        id: Number(id),
+        name: o.name || base.name || `증강체 (#${id})`,
+        description: desc,
+        styledDescription: o.styledDescription || (o.description ? desc.replace(/\n/g, '<br>') : base.styledDescription) || desc,
+        rarity,
+        rarityLabel: RARITY_LABELS[rarity] || '실버',
+        rarityCode: RARITY_CODES[rarity] || 'silver',
+        iconUrl: o.iconUrl || base.iconUrl || DEFAULT_AUG_ICON
+      };
+      this.augments[id] = merged;
+      this.dexAugments[merged.name] = merged;
     }
   }
 
   // 2. 챔피언 목록 로드
   async loadChampions() {
     const url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/ko_kr/v1/champion-summary.json';
-    const list = await this.fetchWithCache('champion-summary.json', url);
+    this.buildChampions(await this.fetchWithCache('champion-summary.json', url, fresh => this.buildChampions(fresh)));
+  }
+
+  buildChampions(list) {
     if (Array.isArray(list)) {
       list.forEach(champ => {
         if (champ.id === -1) return;
@@ -311,7 +257,10 @@ class MetaManager {
   // 3. 아이템 목록 로드
   async loadItems() {
     const url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/ko_kr/v1/items.json';
-    const list = await this.fetchWithCache('items.json', url);
+    this.buildItems(await this.fetchWithCache('items.json', url, fresh => this.buildItems(fresh)));
+  }
+
+  buildItems(list) {
     if (Array.isArray(list)) {
       list.forEach(item => {
         let iconUrl = '';
@@ -328,36 +277,20 @@ class MetaManager {
       });
     }
 
-    // 특수 신규 모드 아이템 수동 매핑 (궁극의 히드라, 우글렛 등)
-    const customItems = {
-      226668: {
-        id: 226668,
-        name: '궁극의 히드라',
-        description: '공격력 200, 스킬 가속 25, 물리 관통력 25, 체력 1000, 모든 피해 흡혈 15%',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/kiwi/aram_ultimatehydra_64.png'
-      },
-      6668: {
-        id: 6668,
-        name: '궁극의 히드라',
-        description: '공격력 200, 스킬 가속 25, 물리 관통력 25, 체력 1000, 모든 피해 흡혈 15%',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/kiwi/aram_ultimatehydra_64.png'
-      },
-      228002: {
-        id: 228002,
-        name: '우글렛의 마녀 모자',
-        description: '주문력 300, 방어력 50, 스킬 가속 20',
-        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/3385_forge_wooglets_witchcap.png'
-      }
-    };
-    for (const [id, cItem] of Object.entries(customItems)) {
-      this.items[id] = cItem;
+    // data/overrides.json 에 직접 등록한 아이템
+    for (const [id, o] of Object.entries(this.loadOverrides().items || {})) {
+      const base = this.items[id] || {};
+      this.items[id] = { ...base, id: Number(id), ...o };
     }
   }
 
   // 4. 소환사 주문 로드
   async loadSpells() {
     const url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/ko_kr/v1/summoner-spells.json';
-    const list = await this.fetchWithCache('summoner-spells.json', url);
+    this.buildSpells(await this.fetchWithCache('summoner-spells.json', url, fresh => this.buildSpells(fresh)));
+  }
+
+  buildSpells(list) {
     if (Array.isArray(list)) {
       list.forEach(spell => {
         let iconUrl = '';
@@ -378,7 +311,10 @@ class MetaManager {
   // 5. 룬 로드
   async loadPerks() {
     const url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/ko_kr/v1/perks.json';
-    const list = await this.fetchWithCache('perks.json', url);
+    this.buildPerks(await this.fetchWithCache('perks.json', url, fresh => this.buildPerks(fresh)));
+  }
+
+  buildPerks(list) {
     if (Array.isArray(list)) {
       list.forEach(perk => {
         let iconUrl = '';
@@ -392,6 +328,14 @@ class MetaManager {
           iconUrl
         };
       });
+    }
+  }
+
+  loadOverrides() {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'overrides.json'), 'utf8'));
+    } catch (e) {
+      return {};
     }
   }
 

@@ -1268,6 +1268,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const team200Html = renderTeamDetailHtml(game.team200 || [], game.team200Win);
         drawer.innerHTML = `
           <div class="detail-drawer-inner">
+            <div class="detail-actions">
+              <button class="btn-full-stats" data-game-id="${game.gameId}">📊 모든 스탯 자세히 보기</button>
+            </div>
             <div class="detail-teams-container">
               <div class="team-block">
                 <div class="team-header">
@@ -1749,6 +1752,31 @@ document.addEventListener('DOMContentLoaded', () => {
           <span>${s.games}판</span>
           <span>${winRateCell(s.wins, s.games)}</span>
         </div>`).join('') : '<div class="st-empty">같은 팀으로 2판 이상 함께한 소환사가 없습니다.</div>');
+    } else if (statsTab === 'unknown') {
+      // 이름 데이터가 아직 없는 증강 (새 시즌 등) — 번호를 알려주면 data/overrides.json 에 등록
+      const unknown = new Map();
+      for (const g of currentGames) {
+        if (g.isGap) continue;
+        for (const p of g.participants || []) {
+          for (const aug of p.augments || []) {
+            if (!aug.name.startsWith('증강체 (#')) continue;
+            const s = unknown.get(aug.id) || { id: aug.id, count: 0, last: 0, example: '' };
+            s.count++;
+            if ((g.gameCreation || 0) > s.last) {
+              s.last = g.gameCreation || 0;
+              s.example = `${formatDate(g.gameCreation)} · ${p.champion?.name || ''} (${p.gameName || p.summonerName || ''})`;
+            }
+            unknown.set(aug.id, s);
+          }
+        }
+      }
+      const list = [...unknown.values()].sort((x, y) => y.last - x.last);
+      rows = `<div class="st-row st-head"><span>증강 번호 · 최근 등장 경기</span><span>등장</span><span></span></div>` + (list.length ? list.map(s => `
+        <div class="st-row">
+          <span class="st-name">#${s.id}<span class="st-tag">${escapeHtml(s.example)}</span></span>
+          <span>${s.count}회</span>
+          <span></span>
+        </div>`).join('') : '<div class="st-empty">이 소환사의 기록에는 이름을 모르는 증강이 없습니다.</div>');
     } else {
       const list = [...patches.values()].sort((x, y) => {
         if (!x.patch) return 1;
@@ -1795,6 +1823,178 @@ document.addEventListener('DOMContentLoaded', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       searchSummoner(row.dataset.riotId);
     }
+  });
+
+  // ===== 경기 전체 스탯 창 =====
+  // [분류, 롤 스탯 이름, 한글 이름, 표시 형식] — 목록에 없는 스탯도 '기타'에 원래 이름으로 모두 표시
+  const STAT_LABELS = [
+    ['전투', 'champLevel', '챔피언 레벨'],
+    ['전투', 'kills', '처치'],
+    ['전투', 'deaths', '사망'],
+    ['전투', 'assists', '어시스트'],
+    ['전투', 'largestKillingSpree', '최대 연속 처치'],
+    ['전투', 'killingSprees', '연속 처치 횟수'],
+    ['전투', 'largestMultiKill', '최다 멀티킬'],
+    ['전투', 'doubleKills', '더블킬'],
+    ['전투', 'tripleKills', '트리플킬'],
+    ['전투', 'quadraKills', '쿼드라킬'],
+    ['전투', 'pentaKills', '펜타킬'],
+    ['전투', 'unrealKills', '언리얼킬'],
+    ['전투', 'firstBloodKill', '선취점', 'bool'],
+    ['전투', 'firstBloodAssist', '선취점 어시스트', 'bool'],
+    ['가한 피해', 'totalDamageDealtToChampions', '챔피언에게 가한 피해'],
+    ['가한 피해', 'physicalDamageDealtToChampions', '└ 물리'],
+    ['가한 피해', 'magicDamageDealtToChampions', '└ 마법'],
+    ['가한 피해', 'trueDamageDealtToChampions', '└ 고정'],
+    ['가한 피해', 'totalDamageDealt', '전체 가한 피해 (미니언 포함)'],
+    ['가한 피해', 'physicalDamageDealt', '└ 물리'],
+    ['가한 피해', 'magicDamageDealt', '└ 마법'],
+    ['가한 피해', 'trueDamageDealt', '└ 고정'],
+    ['가한 피해', 'largestCriticalStrike', '최대 치명타'],
+    ['가한 피해', 'damageDealtToObjectives', '오브젝트 피해'],
+    ['가한 피해', 'damageDealtToTurrets', '포탑 피해'],
+    ['받은 피해', 'totalDamageTaken', '받은 피해'],
+    ['받은 피해', 'physicalDamageTaken', '└ 물리'],
+    ['받은 피해', 'magicalDamageTaken', '└ 마법'],
+    ['받은 피해', 'trueDamageTaken', '└ 고정'],
+    ['받은 피해', 'damageSelfMitigated', '피해 감소량'],
+    ['회복·보호', 'totalHeal', '총 회복량'],
+    ['회복·보호', 'totalHealsOnTeammates', '아군 회복'],
+    ['회복·보호', 'totalDamageShieldedOnTeammates', '아군 보호막'],
+    ['회복·보호', 'totalUnitsHealed', '회복시킨 대상 수'],
+    ['군중 제어', 'timeCCingOthers', 'CC 점수'],
+    ['군중 제어', 'totalTimeCrowdControlDealt', '총 CC 시간', 'sec'],
+    ['생존·성장', 'longestTimeSpentLiving', '최장 생존 시간', 'time'],
+    ['생존·성장', 'totalTimeSpentDead', '사망 시간 합계', 'time'],
+    ['생존·성장', 'goldEarned', '획득 골드'],
+    ['생존·성장', 'goldSpent', '사용 골드'],
+    ['생존·성장', 'totalMinionsKilled', '미니언 처치'],
+    ['생존·성장', 'neutralMinionsKilled', '중립 몬스터 처치'],
+    ['생존·성장', 'neutralMinionsKilledTeamJungle', '└ 아군 정글'],
+    ['생존·성장', 'neutralMinionsKilledEnemyJungle', '└ 적 정글'],
+    ['오브젝트', 'turretKills', '포탑 파괴'],
+    ['오브젝트', 'inhibitorKills', '억제기 파괴'],
+    ['오브젝트', 'firstTowerKill', '첫 포탑 파괴', 'bool'],
+    ['오브젝트', 'firstTowerAssist', '첫 포탑 어시스트', 'bool'],
+    ['오브젝트', 'firstInhibitorKill', '첫 억제기 파괴', 'bool'],
+    ['오브젝트', 'firstInhibitorAssist', '첫 억제기 어시스트', 'bool'],
+    ['시야', 'visionScore', '시야 점수'],
+    ['시야', 'wardsPlaced', '와드 설치'],
+    ['시야', 'wardsKilled', '와드 제거'],
+    ['시야', 'sightWardsBoughtInGame', '와드 구매'],
+    ['시야', 'visionWardsBoughtInGame', '제어 와드 구매'],
+    ['경기 결과', 'win', '승리', 'bool'],
+    ['경기 결과', 'gameEndedInSurrender', '항복으로 종료', 'bool'],
+    ['경기 결과', 'gameEndedInEarlySurrender', '조기 항복', 'bool'],
+    ['경기 결과', 'causedEarlySurrender', '조기 항복 유발', 'bool'],
+    ['경기 결과', 'teamEarlySurrendered', '팀 조기 항복', 'bool'],
+    ['경기 결과', 'earlySurrenderAccomplice', '조기 항복 동조', 'bool'],
+    ['경기 결과', 'gameEndedInIGNBSurrender', '이탈자 발생 항복으로 종료', 'bool'],
+    ['경기 결과', 'causedGameEndFromIGNBSurrender', '이탈로 항복 유발', 'bool'],
+    ['경기 결과', 'wasSevereTransgressor', '심각한 비매너 제재', 'bool']
+  ];
+  const STAT_HIDE_HIGHLIGHT = new Set(['deaths', 'totalTimeSpentDead']);
+  const fullStatsModal = document.getElementById('fullStatsModal');
+  const fullStatsBody = document.getElementById('fullStatsBody');
+  const fullStatsSubtitle = document.getElementById('fullStatsSubtitle');
+
+  function formatStat(value, kind) {
+    if (value === undefined || value === null) return '<span class="fs-na">-</span>';
+    if (kind === 'bool' || typeof value === 'boolean') return value ? '<span class="fs-yes">✓</span>' : '<span class="fs-na">-</span>';
+    if (kind === 'time') return `${Math.floor(value / 60)}:${String(Math.round(value % 60)).padStart(2, '0')}`;
+    if (kind === 'sec') return `${Number(value).toLocaleString()}초`;
+    return Number(value).toLocaleString();
+  }
+
+  // 롤이 꺼져 있을 때: 저장된 값(목록 화면 값 + 추가 스탯)으로 대신 표시
+  function storedStatsFor(game) {
+    return (game.participants || []).map(p => ({
+      participantId: p.participantId,
+      teamId: p.teamId,
+      puuid: p.puuid,
+      gameName: p.gameName || p.summonerName,
+      tagLine: p.tagLine,
+      championId: p.champion?.id,
+      stats: {
+        champLevel: p.champLevel, kills: p.kills, deaths: p.deaths, assists: p.assists, win: p.win,
+        totalDamageDealtToChampions: p.totalDamage, physicalDamageDealtToChampions: p.physicalDamage,
+        magicDamageDealtToChampions: p.magicDamage, trueDamageDealtToChampions: p.trueDamage,
+        totalDamageTaken: p.totalDamageTaken, goldEarned: p.goldEarned, totalMinionsKilled: p.minionsKilled,
+        ...(p.ext || {})
+      }
+    }));
+  }
+
+  function renderFullStats(game, players, offline) {
+    const order = [...players].sort((x, y) => x.teamId - y.teamId || x.participantId - y.participantId);
+    const champOf = (pl) => (game.participants || []).find(p => p.participantId === pl.participantId)?.champion;
+    // 저장된 게임 종료 화면 값(아군 회복/보호막, 사망 시간)도 합침
+    for (const pl of order) {
+      const saved = (game.participants || []).find(p => p.participantId === pl.participantId);
+      if (saved?.ext) for (const [k, v] of Object.entries(saved.ext)) if (pl.stats[k] === undefined) pl.stats[k] = v;
+    }
+    const known = new Set(STAT_LABELS.map(r => r[1]));
+    const extraKeys = [...new Set(order.flatMap(pl => Object.keys(pl.stats)))].filter(k => !known.has(k)).sort();
+    const rows = [...STAT_LABELS, ...extraKeys.map(k => ['기타 (원본 이름)', k, k])]
+      .filter(([, key]) => order.some(pl => pl.stats[key] !== undefined));
+
+    const head = `<tr><th class="fs-label"></th>${order.map(pl => {
+      const ch = champOf(pl);
+      return `<th class="fs-player team-${pl.teamId}${pl.puuid && pl.puuid === game.targetParticipant?.puuid ? ' is-target' : ''}" title="${escapeHtml(pl.gameName)}${pl.tagLine ? '#' + escapeHtml(pl.tagLine) : ''}">
+        <img src="${ch?.squarePortraitPath || ''}" alt="">
+        <span>${escapeHtml(pl.gameName || ch?.name || '')}</span>
+      </th>`;
+    }).join('')}</tr>`;
+
+    let body = '';
+    let currentGroup = '';
+    for (const [group, key, label, kind] of rows) {
+      if (group !== currentGroup) {
+        currentGroup = group;
+        body += `<tr class="fs-group"><td colspan="${order.length + 1}">${escapeHtml(group)}</td></tr>`;
+      }
+      const values = order.map(pl => pl.stats[key]);
+      const nums = values.filter(v => typeof v === 'number');
+      const max = nums.length ? Math.max(...nums) : null;
+      const allSame = nums.length === order.length && nums.every(n => n === nums[0]); // 전원 같은 값이면 강조 안 함
+      body += `<tr><td class="fs-label" title="${escapeHtml(key)}">${escapeHtml(label)}</td>${values.map((v, i) =>
+        `<td class="team-${order[i].teamId}${!STAT_HIDE_HIGHLIGHT.has(key) && typeof v === 'number' && v > 0 && v === max && !allSame ? ' fs-max' : ''}">${formatStat(v, kind)}</td>`).join('')}</tr>`;
+    }
+
+    const minutes = Math.floor((game.gameDuration || 0) / 60);
+    fullStatsSubtitle.textContent = `${formatDate(game.gameCreation)} · ${minutes}분 ${(game.gameDuration || 0) % 60}초${game.gameVersion ? ' · ' + game.gameVersion.split('.').slice(0, 2).join('.') + ' 패치' : ''}`;
+    fullStatsBody.innerHTML = (offline ? `<div class="fs-notice">${escapeHtml(offline)}</div>` : '') +
+      `<table class="fs-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  }
+
+  async function openFullStats(gameId) {
+    const game = gameByIdMap.get(String(gameId));
+    if (!game) return;
+    fullStatsBody.innerHTML = '<div class="fs-loading">불러오는 중...</div>';
+    fullStatsSubtitle.textContent = '';
+    fullStatsModal.classList.remove('hidden');
+    try {
+      const res = await fetch(`/api/match/${gameId}/stats`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      renderFullStats(game, data.players, null);
+    } catch (e) {
+      renderFullStats(game, storedStatsFor(game), '롤 클라이언트에서 불러오지 못해 저장된 스탯만 표시합니다. (롤을 켜면 전체 스탯이 보입니다)');
+    }
+  }
+
+  matchListContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-full-stats');
+    if (!btn) return;
+    e.stopPropagation();
+    openFullStats(btn.dataset.gameId);
+  });
+  document.getElementById('btnCloseFullStats')?.addEventListener('click', () => fullStatsModal.classList.add('hidden'));
+  fullStatsModal?.addEventListener('click', (e) => {
+    if (e.target === fullStatsModal) fullStatsModal.classList.add('hidden');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !fullStatsModal.classList.contains('hidden')) fullStatsModal.classList.add('hidden');
   });
 
   // 실행 시작
