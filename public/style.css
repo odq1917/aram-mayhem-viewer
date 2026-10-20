@@ -74,7 +74,7 @@ body {
 .app-container {
   position: relative;
   z-index: 1;
-  max-width: 1480px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px 20px 80px;
 }
@@ -1033,9 +1033,11 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
+/* 펼치면 상세 표가 들어갈 만큼(최대 1480px) 양옆으로 넓어짐. 화면이 좁으면 화면 폭에 맞춤 */
 .match-card.expanded {
-  width: calc(100% + 140px);
-  margin-left: -70px;
+  --expanded-width: min(1480px, calc(100vw - 40px));
+  width: max(100%, var(--expanded-width));
+  margin-left: min(0px, calc((100% - var(--expanded-width)) / 2));
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(168, 85, 247, 0.15);
   border-color: rgba(168, 85, 247, 0.45);
   z-index: 5;
@@ -1056,13 +1058,7 @@ body {
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(148, 163, 184, 0.15);
 }
 
-/* 펼친 카드는 좌우로 70px씩 넓어지므로, 그만큼 여유가 없는 화면에서는 원래 폭 유지 */
-@media (max-width: 1680px) {
-  .match-card.expanded {
-    width: 100%;
-    margin-left: 0;
-  }
-}
+
 
 .match-card.win {
   border-left: 5px solid var(--win-color);
@@ -1573,9 +1569,9 @@ body {
 
 .detail-table-header {
   display: grid;
-  grid-template-columns: minmax(70px, 1fr) 52px 90px 68px 68px 68px 126px;
+  grid-template-columns: 185px 52px 90px 62px 62px 62px 126px;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   padding: 4px 6px;
   font-size: 11px;
   font-weight: 700;
@@ -1595,9 +1591,9 @@ body {
 /* 10인 플레이어 순차 시차(Staggered Fade-in) 등장 모션 */
 .detail-player-row {
   display: grid;
-  grid-template-columns: minmax(70px, 1fr) 52px 90px 68px 68px 68px 126px;
+  grid-template-columns: 185px 52px 90px 62px 62px 62px 126px;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   padding: 5px 6px;
   border-radius: 8px;
   font-size: 11.5px;
@@ -2385,10 +2381,15 @@ body {
 .detail-drawer-inner {
   container-type: inline-size;
 }
-@container (max-width: 1235px) {
+/* 두 팀을 나란히 놓을 폭이 안 되면 위아래로 (이때는 이름 칸이 남는 폭을 씀) */
+@container (max-width: 1429px) {
   .detail-teams-container {
     grid-template-columns: 1fr;
     min-width: 0;
+  }
+  .detail-table-header,
+  .detail-player-row {
+    grid-template-columns: minmax(185px, 1fr) 52px 90px 62px 62px 62px 126px;
   }
 }
 
@@ -2636,4 +2637,26 @@ body {
   color: #fcd34d;
   font-size: 11.5px;
   line-height: 1.45;
+}
+
+/* 닉네임 + 태그: 닉네임이 길면 닉네임만 말줄임, 태그는 항상 보임 */
+.player-name-text {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.player-name-main {
+  overflow: hidden;
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.player-name-tag {
+  flex-shrink: 0;
+  margin-left: 3px;
+  color: rgba(148, 163, 184, 0.55);
+  font-size: 10px;
+  font-weight: 500;
 }

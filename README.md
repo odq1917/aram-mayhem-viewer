@@ -6,7 +6,7 @@
 
 ## 📦 다운로드 및 실행 방법 (일반 사용자용 - Node.js 설치 불필요)
 
-1. 우측 **[Releases](../../releases)** 페이지에서 최신 **`ARAM-Mayhem-Viewer-Portable-v1.5.3.zip`** 파일을 다운로드합니다.
+1. 우측 **[Releases](../../releases)** 페이지에서 최신 **`ARAM-Mayhem-Viewer-Portable-v1.5.4.zip`** 파일을 다운로드합니다.
 2. 원하는 폴더에 압축을 해제합니다.
 3. **리그 오브 레전드(LoL) 클라이언트**를 실행하고 로그인합니다.
 4. 폴더 내 **`start.bat`** 파일을 더블 클릭하면 서버가 **창 없이 백그라운드로** 실행되고 대시보드(`http://localhost:3500`)가 열립니다.

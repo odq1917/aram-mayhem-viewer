@@ -1215,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="player-name-text${p.gameName && p.tagLine && !p.isTarget ? ' is-searchable' : ''}"
                   title="${escapeHtml(p.gameName && p.tagLine ? `${p.gameName}#${p.tagLine}` : p.summonerName)}"
                   ${p.gameName && p.tagLine ? `data-riot-id="${escapeHtml(`${p.gameName}#${p.tagLine}`)}"` : ''}>
-              ${escapeHtml(p.summonerName || '소환사')}
+              <span class="player-name-main">${escapeHtml(p.gameName || p.summonerName || '소환사')}</span>${p.tagLine ? `<span class="player-name-tag">#${escapeHtml(p.tagLine)}</span>` : ''}
             </span>
             ${leaverBadgeHtml}
           </div>
