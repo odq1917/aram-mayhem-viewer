@@ -81,6 +81,35 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
 
   // 1. 초기화 및 LCU 상태 점검
+  let myPuuid = null;
+  let seenAutoRefreshAt = null;
+  let seenBackfillAt = null;
+
+  // 게임 종료 후 서버가 자동 갱신했거나, 과거 경기 스탯 보충이 끝나면 보고 있는 목록에 반영
+  function handleAutoRefreshState(state) {
+    if (!state) return;
+    if (seenAutoRefreshAt === null) {
+      seenAutoRefreshAt = state.lastRunAt;
+      seenBackfillAt = state.backfill?.finishedAt || 0;
+      return;
+    }
+    const viewing = currentSummoner?.puuid;
+    if (state.lastRunAt > seenAutoRefreshAt) {
+      seenAutoRefreshAt = state.lastRunAt;
+      const added = viewing ? state.updated?.[viewing] : 0;
+      if (added > 0) {
+        fetchMatches(viewing, { keepFilters: true }).then(() => {
+          showRefreshStatus(state.reason === 'game-end' ? `게임 종료 · 새 경기 ${added}개 자동 반영` : `새 경기 ${added}개 자동 반영`);
+        });
+      }
+    }
+    const bfAt = state.backfill?.finishedAt || 0;
+    if (bfAt > seenBackfillAt) {
+      seenBackfillAt = bfAt;
+      if (viewing && state.backfill.updated?.includes(viewing)) fetchMatches(viewing, { keepFilters: true });
+    }
+  }
+
   async function checkLcuStatus() {
     try {
       const res = await fetch('/api/status');
@@ -95,6 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
         bookmarkDraggableBtn.href = data.openHtmlUrl;
       }
 
+      if (data.currentSummoner?.puuid) myPuuid = data.currentSummoner.puuid;
+      handleAutoRefreshState(data.autoRefresh);
+
       if (data.connected) {
         lcuStatusBadge.className = 'status-badge connected';
         lcuStatusBadge.innerHTML = `<span class="status-dot"></span><span class="status-text">롤 클라이언트 연결됨</span>`;
@@ -105,8 +137,11 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         lcuStatusBadge.className = 'status-badge disconnected';
         lcuStatusBadge.innerHTML = `<span class="status-dot"></span><span class="status-text">롤 클라이언트 미실행</span>`;
-        if (lcuDisconnectedView) lcuDisconnectedView.classList.remove('hidden');
-        if (profileSection) profileSection.classList.add('hidden');
+        // 오프라인 열람 중이면(저장된 전적 표시 중) 화면을 가리지 않음
+        if (!currentSummoner) {
+          if (lcuDisconnectedView) lcuDisconnectedView.classList.remove('hidden');
+          if (profileSection) profileSection.classList.add('hidden');
+        }
       }
     } catch (err) {
       lcuStatusBadge.className = 'status-badge disconnected';
@@ -218,6 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     profileSection.classList.remove('hidden');
+    loadWatchlist();
     await fetchMatches(summoner.puuid);
     loadRecentSearches();
   }
@@ -310,6 +346,63 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function showRefreshStatus(text) {
+    if (!refreshStatusEl) return;
+    refreshStatusEl.textContent = text;
+    clearTimeout(refreshStatusEl._timer);
+    refreshStatusEl._timer = setTimeout(() => { refreshStatusEl.textContent = ''; }, 8000);
+  }
+
+  // 자동 갱신 목록(auto-refresh.txt) 등록 토글 — 내 계정은 항상 자동 갱신되므로 숨김
+  const btnWatchToggle = document.getElementById('btnWatchToggle');
+  const btnOpenDataFolder = document.getElementById('btnOpenDataFolder');
+  let watchlistEntries = [];
+  const normRiotId = s => String(s || '').toLowerCase().replace(/\s+/g, '');
+  function currentRiotId() {
+    return currentSummoner?.gameName && currentSummoner?.tagLine ? `${currentSummoner.gameName}#${currentSummoner.tagLine}` : '';
+  }
+  function renderWatchToggle() {
+    if (!btnWatchToggle) return;
+    const riotId = currentRiotId();
+    const isMe = currentSummoner?.puuid && currentSummoner.puuid === myPuuid;
+    btnWatchToggle.classList.toggle('hidden', !riotId || isMe);
+    const watched = watchlistEntries.some(e => normRiotId(e) === normRiotId(riotId));
+    btnWatchToggle.classList.toggle('is-on', watched);
+    btnWatchToggle.querySelector('span').textContent = watched ? '★ 자동 갱신 중' : '☆ 자동 갱신';
+    btnWatchToggle.title = watched
+      ? '전적 검색기를 켤 때와 게임이 끝날 때마다 이 소환사도 함께 갱신합니다. 누르면 해제'
+      : '이 소환사를 자동 갱신 목록에 추가 (오래된 경기도 계속 쌓임)';
+  }
+  async function loadWatchlist() {
+    try {
+      watchlistEntries = (await (await fetch('/api/watchlist')).json()).entries || [];
+    } catch (e) {}
+    renderWatchToggle();
+  }
+  if (btnWatchToggle) {
+    btnWatchToggle.addEventListener('click', async () => {
+      const riotId = currentRiotId();
+      if (!riotId) return;
+      const watched = !btnWatchToggle.classList.contains('is-on');
+      try {
+        const res = await fetch('/api/watchlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ riotId, watched })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        watchlistEntries = data.entries || [];
+        renderWatchToggle();
+      } catch (e) {
+        alert(e.message || '자동 갱신 목록을 바꾸지 못했습니다.');
+      }
+    });
+  }
+  if (btnOpenDataFolder) {
+    btnOpenDataFolder.addEventListener('click', () => fetch('/api/open-data-folder', { method: 'POST' }));
+  }
+
   // 서버의 경량 포맷(ID만 포함)을 렌더링용 객체 구조로 복원
   function hydrateGames(games, meta) {
     if (!meta) return games;
@@ -327,6 +420,12 @@ document.addEventListener('DOMContentLoaded', () => {
         items: (p.itemIds || []).map(id => (id > 0 ? meta.items[id] || null : null)),
         augments: (p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean)
       }));
+      // 게임 종료 화면에서 받은 '팀원 보호막' 값이 있으면 회복·보호 칸에 포함
+      if (participants.some(p => p.ext?.totalDamageShieldedOnTeammates !== undefined)) {
+        for (const p of participants) p.totalHeal = (p.totalHeal || 0) + (p.ext?.totalDamageShieldedOnTeammates || 0);
+        const maxHeal = Math.max(0, ...participants.map(p => p.totalHeal));
+        for (const p of participants) p.healPercent = maxHeal > 0 ? Math.round((p.totalHeal / maxHeal) * 100) : 0;
+      }
       return {
         ...g,
         participants,
@@ -464,7 +563,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 6. 프로필 종합 통계 계산 (챔피언 필터 적용 시 해당 챔피언 기준으로 정렬/재계산)
+  // "16.20.824.8524" → "16.20"
+  const patchOf = v => (v ? String(v).split('.').slice(0, 2).join('.') : '');
+  function updatePatchStat(games) {
+    const labelEl = document.getElementById('statPatchLabel');
+    if (!labelEl) return;
+    const played = (games || []).filter(g => !g.isGap && !g.isRemake && g.gameVersion && g.targetParticipant);
+    const latest = played.reduce((best, g) => (!best || g.gameCreation > best.gameCreation ? g : best), null);
+    const patch = latest ? patchOf(latest.gameVersion) : '';
+    const list = played.filter(g => patchOf(g.gameVersion) === patch);
+    const wins = list.filter(g => g.targetParticipant.win).length;
+    labelEl.textContent = patch ? `${patch} 패치 승률` : '이번 패치 승률';
+    document.getElementById('statPatchWin').textContent = list.length ? `${wins}승` : '-';
+    document.getElementById('statPatchLoss').textContent = list.length ? `${list.length - wins}패` : '';
+    document.getElementById('statPatchRate').textContent = list.length ? `승률 ${Math.round((wins / list.length) * 100)}%` : '패치 정보 수집 중';
+  }
+
   function updateProfileStats(games, activeChampLabel = '') {
+    updatePatchStat(games);
     const actualGames = (games || []).filter(g => !g.isGap);
     const validPlayedGames = actualGames.filter(g => !g.isRemake);
 
@@ -685,6 +801,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 7-1. 챔피언 + 증강체 초고속 통합 경기 필터링 (DOM 재생성 0회, 0.1ms 내외)
+  // 통계 창에서 증강을 눌러 들어온 경우엔 '내가 고른 증강' 기준으로만 검색
+  let augSearchMineOnly = false;
+
   function applyMatchFilters(force = false) {
     const rawChampVal = (matchChampionSearchInput?.value || '').trim();
     const rawAugVal = (matchAugmentSearchInput?.value || '').trim();
@@ -754,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
         match = false;
       }
       if (match && effectiveAugKeyword) {
-        const augList = effectiveChampVal ? (item._targetAugNames || []) : (item._allAugNames || []);
+        const augList = (effectiveChampVal || augSearchMineOnly) ? (item._targetAugNames || []) : (item._allAugNames || []);
         match = augList.some(aName => aName.includes(effectiveAugKeyword));
       }
 
@@ -853,6 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <span class="kda-ratio">${p.kda}:1 평점</span>
           <span class="kp-rate">킬관여 ${p.killParticipation || 0}%</span>
+          ${renderMultiKillBadge(p)}
         </div>
 
         <div class="col-augments">
@@ -932,6 +1052,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return SHORT_AUGMENT_NAMES[clean] || clean;
     }
     return name;
+  }
+
+  // 최다 멀티킬 표기 (모든 단계 같은 스타일)
+  const MULTI_KILL_LABELS = { 2: '더블킬', 3: '트리플킬', 4: '쿼드라킬', 5: '펜타킬' };
+  function renderMultiKillBadge(p) {
+    const n = Math.min(p.ext?.largestMultiKill || 0, 5);
+    return n >= 2 ? `<span class="multikill-badge">${MULTI_KILL_LABELS[n]}</span>` : '';
   }
 
   // 증강은 보통 4개지만 전환: 혼돈 / 나는 왕이다 등으로 최대 6개까지 획득 가능
@@ -1395,7 +1522,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 증강체 경기 실시간 검색 리스너
   if (matchAugmentSearchInput) {
-    matchAugmentSearchInput.addEventListener('input', applyMatchFilters);
+    matchAugmentSearchInput.addEventListener('input', () => {
+      augSearchMineOnly = false;
+      applyMatchFilters();
+    });
   }
   if (btnClearAugSearch) {
     btnClearAugSearch.addEventListener('click', () => {
@@ -1490,6 +1620,114 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => { appVersionEl.textContent = label; checking = false; }, 2000);
     });
   }
+
+  // ===== 통계 모달 (증강별 승률 / 함께한 소환사 / 패치별) =====
+  const statsModal = document.getElementById('statsModal');
+  const statsBody = document.getElementById('statsBody');
+  const statsSubtitle = document.getElementById('statsSubtitle');
+  let statsTab = 'augments';
+
+  function winRateCell(wins, total) {
+    const rate = total ? Math.round((wins / total) * 100) : 0;
+    return `<span class="st-rate ${rate >= 50 ? 'good' : 'bad'}">${rate}%</span><span class="st-wl">${wins}승 ${total - wins}패</span>`;
+  }
+
+  function computeStats() {
+    const games = currentGames.filter(g => !g.isGap && !g.isRemake && g.targetParticipant);
+    const augs = new Map(), allies = new Map(), patches = new Map();
+    for (const g of games) {
+      const me = g.targetParticipant;
+      for (const aug of me.augments || []) {
+        const s = augs.get(aug.id) || { aug, picks: 0, wins: 0 };
+        s.picks++;
+        if (me.win) s.wins++;
+        augs.set(aug.id, s);
+      }
+      for (const p of g.participants || []) {
+        if (p.isTarget || p.teamId !== me.teamId || !p.puuid) continue;
+        const s = allies.get(p.puuid) || { name: p.gameName || p.summonerName, tag: p.tagLine, games: 0, wins: 0, last: 0 };
+        s.games++;
+        if (me.win) s.wins++;
+        s.last = Math.max(s.last, g.gameCreation || 0);
+        allies.set(p.puuid, s);
+      }
+      const patch = patchOf(g.gameVersion) || '';
+      const s = patches.get(patch) || { patch, games: 0, wins: 0 };
+      s.games++;
+      if (me.win) s.wins++;
+      patches.set(patch, s);
+    }
+    return { total: games.length, augs, allies, patches };
+  }
+
+  function renderStats() {
+    const { total, augs, allies, patches } = computeStats();
+    statsSubtitle.textContent = `${currentSummoner?.gameName || ''} · 저장된 ${total}경기 기준 (다시하기 제외)`;
+    document.querySelectorAll('.stats-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === statsTab));
+    let rows = '';
+    if (statsTab === 'augments') {
+      const list = [...augs.values()].sort((x, y) => y.picks - x.picks || y.wins / y.picks - x.wins / x.picks);
+      rows = `<div class="st-row st-head"><span>증강체</span><span>선택</span><span>승률</span></div>` + list.map(s => `
+        <div class="st-row st-clickable" data-aug-name="${escapeHtml(s.aug.name)}" title="클릭하면 이 증강을 쓴 경기만 보기">
+          <span class="st-name"><img src="${s.aug.iconUrl}" class="st-icon ${s.aug.rarityCode}" loading="lazy" alt="">${escapeHtml(s.aug.name)}</span>
+          <span>${s.picks}회</span>
+          <span>${winRateCell(s.wins, s.picks)}</span>
+        </div>`).join('');
+    } else if (statsTab === 'allies') {
+      const list = [...allies.values()].filter(s => s.games >= 2).sort((x, y) => y.games - x.games || y.last - x.last);
+      rows = `<div class="st-row st-head"><span>함께한 소환사 (같은 팀 2판 이상)</span><span>판수</span><span>함께할 때 승률</span></div>` + (list.length ? list.map(s => `
+        <div class="st-row st-clickable" data-riot-id="${escapeHtml(s.tag ? `${s.name}#${s.tag}` : s.name)}" title="클릭하면 이 소환사 전적 검색">
+          <span class="st-name">${escapeHtml(s.name)}<span class="st-tag">${s.tag ? '#' + escapeHtml(s.tag) : ''}</span></span>
+          <span>${s.games}판</span>
+          <span>${winRateCell(s.wins, s.games)}</span>
+        </div>`).join('') : '<div class="st-empty">같은 팀으로 2판 이상 함께한 소환사가 없습니다.</div>');
+    } else {
+      const list = [...patches.values()].sort((x, y) => {
+        if (!x.patch) return 1;
+        if (!y.patch) return -1;
+        return y.patch.localeCompare(x.patch, undefined, { numeric: true });
+      });
+      rows = `<div class="st-row st-head"><span>패치</span><span>판수</span><span>승률</span></div>` + list.map(s => `
+        <div class="st-row">
+          <span class="st-name">${s.patch ? s.patch + ' 패치' : '패치 정보 수집 중'}</span>
+          <span>${s.games}판</span>
+          <span>${winRateCell(s.wins, s.games)}</span>
+        </div>`).join('');
+    }
+    statsBody.innerHTML = rows;
+  }
+
+  document.getElementById('btnOpenStats')?.addEventListener('click', () => {
+    if (!currentGames.length) return;
+    renderStats();
+    statsModal.classList.remove('hidden');
+  });
+  document.getElementById('btnCloseStatsModal')?.addEventListener('click', () => statsModal.classList.add('hidden'));
+  statsModal?.addEventListener('click', (e) => {
+    if (e.target === statsModal) {
+      statsModal.classList.add('hidden');
+      return;
+    }
+    const tab = e.target.closest('.stats-tab');
+    if (tab) {
+      statsTab = tab.dataset.tab;
+      renderStats();
+      return;
+    }
+    const row = e.target.closest('.st-clickable');
+    if (!row) return;
+    statsModal.classList.add('hidden');
+    if (row.dataset.augName) {
+      matchAugmentSearchInput.value = row.dataset.augName;
+      augSearchMineOnly = true;
+      applyMatchFilters(true);
+      matchListContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (row.dataset.riotId) {
+      summonerSearchInput.value = row.dataset.riotId;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      searchSummoner(row.dataset.riotId);
+    }
+  });
 
   // 실행 시작
   checkLcuStatus();

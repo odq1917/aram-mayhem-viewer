@@ -9,3 +9,5 @@ scratch_*.html
 북마크_등록_가이드.html
 .DS_Store
 Thumbs.db
+data/history_moved_*/
+data/*.moved

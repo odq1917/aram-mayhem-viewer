@@ -4,6 +4,19 @@ const lcu = require('./lcu-connector');
 const meta = require('./meta-manager');
 const historyStore = require('./history-store');
 const updateChecker = require('./update-checker');
+const dataDir = require('./data-dir');
+const { syncMatches } = require('./match-sync');
+const autoRefresher = require('./auto-refresh');
+
+// 구버전(프로그램 폴더 data/)의 기록을 사용자 데이터 폴더로 이전
+try {
+  const moved = dataDir.migrateLegacyData(__dirname);
+  if (moved.movedFiles || moved.mergedSearches) {
+    console.log(`[DataDir] 기존 기록 이전 완료 → ${dataDir.DATA_DIR} (전적 ${moved.movedFiles}명, 최근 검색 ${moved.mergedSearches}개)`);
+  }
+} catch (e) {
+  console.warn('[DataDir] 기존 기록 이전 실패:', e.message);
+}
 
 const { version: APP_VERSION } = require('./package.json');
 
@@ -86,7 +99,8 @@ app.get('/api/status', async (req, res) => {
       connected: isConnected,
       currentSummoner: currentSummoner,
       openHtmlUrl,
-      version: APP_VERSION
+      version: APP_VERSION,
+      autoRefresh: autoRefresher.state
     });
   } catch (err) {
     res.json({
@@ -176,20 +190,6 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// 동시 실행 개수 제한 map (LCU 과부하 방지)
-async function mapLimit(list, limit, fn) {
-  const results = new Array(list.length);
-  let next = 0;
-  const workers = Array.from({ length: Math.min(limit, list.length) }, async () => {
-    while (next < list.length) {
-      const i = next++;
-      results[i] = await fn(list[i], i);
-    }
-  });
-  await Promise.all(workers);
-  return results;
-}
-
 function sendHistory(res, puuid, record, extra = {}) {
   const games = record.games || [];
   const total = games.filter(g => !g.isGap).length;
@@ -222,48 +222,11 @@ app.get('/api/matches/:puuid', async (req, res) => {
   }
 
   try {
-    // 1. LCU 최신 매치 목록 (LCU는 최근 약 40경기만 제공, 페이지 인덱스는 사실상 무시됨)
-    const historyRes = await lcu.getMatchList(puuid, 0, 40);
-    const rawGames = historyRes?.games?.games || [];
-    const windowOldestTime = rawGames.length
-      ? Math.min(...rawGames.map(g => g.gameCreation || Infinity))
-      : null;
-
-    // 협곡 랭크/일반, 봇전, 연습 모드 등 증강이 없는 큐는 상세 조회 생략
-    const standardExcludes = [420, 440, 400, 430, 490, 830, 840, 850, 870, 880, 890, 3140];
-    const candidateGames = rawGames.filter(g => !standardExcludes.includes(g.queueId));
-
-    // 2. 이미 저장된 경기는 상세 재조회 생략 (경기 결과는 바뀌지 않음)
-    const existing = historyStore.getHistory(puuid);
-    // 단, 추가 스탯(ext)이 없는 구버전 저장 경기는 LCU에 남아 있는 동안 1회 다시 받아 보충
-    const savedIds = new Set(existing.games
-      .filter(g => !g.isGap && g.participants?.[0]?.ext)
-      .map(g => String(g.gameId)));
-    const toFetch = candidateGames.filter(g => !savedIds.has(String(g.gameId)));
-
-    let failed = 0;
-    const enriched = await mapLimit(toFetch, 6, async (g) => {
-      try {
-        const detail = await lcu.getGameDetail(g.gameId);
-        return meta.enrichGameData(detail, puuid);
-      } catch (e) {
-        failed++;
-        return null;
-      }
-    });
-    const newGames = enriched.filter(Boolean);
-    const prevIds = new Set(existing.games.filter(g => !g.isGap).map(g => String(g.gameId)));
-    const addedCount = newGames.filter(g => !prevIds.has(String(g.gameId))).length;
-
-    // 상세 조회 실패 경기가 있으면 공백 판정을 보수적으로 (다음 조회 때 다시 시도됨)
-    const savedRecord = historyStore.saveHistory(puuid, null, newGames, failed ? null : windowOldestTime);
-    const liveIds = new Set(candidateGames.map(g => String(g.gameId)));
-    const liveCount = savedRecord.games.filter(g => !g.isGap && liveIds.has(String(g.gameId))).length;
-
-    sendHistory(res, puuid, savedRecord, {
+    const { record, newCount, liveCount } = await syncMatches(puuid);
+    sendHistory(res, puuid, record, {
       liveCount,
-      cachedCount: savedRecord.totalGamesCount - liveCount,
-      newCount: addedCount
+      cachedCount: record.totalGamesCount - liveCount,
+      newCount
     });
   } catch (err) {
     console.error('매치 히스토리 조회 실패:', err.message);
@@ -286,6 +249,27 @@ app.get('/api/match/:gameId', async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
+});
+
+// 5-1. 자동 갱신 목록 (데이터 폴더의 auto-refresh.txt)
+app.get('/api/watchlist', (req, res) => {
+  res.json({ entries: autoRefresher.readWatchlist(), file: dataDir.WATCHLIST_FILE });
+});
+
+app.post('/api/watchlist', (req, res) => {
+  const riotId = String(req.body?.riotId || '').trim();
+  if (!/^[^#]{1,32}#[^#]{1,16}$/.test(riotId)) {
+    return res.status(400).json({ error: '"닉네임#태그" 형식이어야 합니다.' });
+  }
+  const entries = autoRefresher.setWatched(riotId, Boolean(req.body?.watched));
+  res.json({ entries });
+});
+
+// 5-2. 데이터 폴더 열기 (Windows 탐색기)
+app.post('/api/open-data-folder', (req, res) => {
+  if (process.platform !== 'win32') return res.status(400).json({ error: 'Windows에서만 지원합니다.' });
+  require('child_process').spawn('explorer.exe', [dataDir.DATA_DIR], { detached: true, stdio: 'ignore' }).unref();
+  res.json({ ok: true, path: dataDir.DATA_DIR });
 });
 
 // 6. 소환사 로컬 전적 기록 삭제 API
@@ -346,11 +330,13 @@ function registerProtocolHandler() {
 async function startServer() {
   await meta.init();
   registerProtocolHandler();
+  autoRefresher.start();
   const server = app.listen(PORT, HOST, () => {
     console.log(`=======================================================`);
     console.log(`⚡ 롤 증강 칼바람 전적 뷰어 (ARAM Mayhem Search Viewer) v${APP_VERSION}`);
     console.log(`🔗 대시보드 URL: http://localhost:${PORT}`);
     console.log(`📌 북마크 프로토콜: aram-mayhem://open`);
+    console.log(`💾 데이터 폴더: ${dataDir.DATA_DIR}`);
     console.log(`=======================================================`);
   });
   server.on('error', (err) => {

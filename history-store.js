@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const meta = require('./meta-manager');
+const { HISTORY_DIR, RECENT_SEARCHES_FILE } = require('./data-dir');
 
 class HistoryStore {
   constructor() {
-    this.baseDir = path.join(__dirname, 'data');
-    this.historyDir = path.join(this.baseDir, 'history');
-    this.searchesFile = path.join(this.baseDir, 'recent_searches.json');
+    this.historyDir = HISTORY_DIR;
+    this.searchesFile = RECENT_SEARCHES_FILE;
     this.init();
   }
 
@@ -141,6 +141,28 @@ class HistoryStore {
     }
 
     return dataToSave;
+  }
+
+  // 저장된 경기 일부를 교체 (순서·공백 유지). replacements: gameId → 새 게임 데이터 또는 { extUnavailable: true }
+  patchGames(puuid, replacements) {
+    if (!replacements || replacements.size === 0) return;
+    const record = this.getHistory(puuid);
+    if (!record.games.length) return;
+    record.games = record.games.map(g => {
+      if (g.isGap) return g;
+      const rep = replacements.get(String(g.gameId));
+      if (!rep) return g;
+      if (rep.extUnavailable) return { ...g, extUnavailable: true };
+      return { ...meta.compactGame(rep), isCached: g.isCached, isLiveFetched: g.isLiveFetched };
+    });
+    this.writeJsonAtomic(this.getFilePath(puuid), record);
+  }
+
+  // 저장된 전적이 있는 모든 소환사 PUUID
+  listSavedPuuids() {
+    return fs.readdirSync(this.historyDir)
+      .filter(f => f.endsWith('.json'))
+      .map(f => f.slice(0, -5));
   }
 
   // 최근 검색된 소환사 목록 관리

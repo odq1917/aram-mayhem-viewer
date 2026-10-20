@@ -1,3 +1,5 @@
+// 테스트가 실제 사용자 데이터 폴더를 건드리지 않도록 임시 폴더 사용
+process.env.MAYHEM_DATA_DIR = require('path').join(require('os').tmpdir(), 'mayhem-gg-test');
 const test = require('node:test');
 const assert = require('node:assert');
 const { compareVersions } = require('../update-checker');

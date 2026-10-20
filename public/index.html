@@ -149,6 +149,8 @@
                 <i data-lucide="refresh-cw"></i>
                 <span>전적 갱신</span>
               </button>
+              <button id="btnWatchToggle" class="btn-watch-toggle hidden"><span>☆ 자동 갱신</span></button>
+              <button id="btnOpenDataFolder" class="btn-icon-mini" title="데이터 폴더 열기 (누적 전적 · 자동 갱신 목록 auto-refresh.txt)"><i data-lucide="folder-open"></i></button>
               <span id="refreshStatus" class="refresh-status"></span>
             </div>
           </div>
@@ -180,6 +182,11 @@
             <div id="statFavAugment" class="stat-value augment-highlight">-</div>
             <span id="statFavAugCount" class="stat-sub">0회 픽</span>
           </div>
+          <div class="stat-box">
+            <span id="statPatchLabel" class="stat-label">이번 패치 승률</span>
+            <div class="stat-value"><span id="statPatchWin" class="win-text">-</span> <span id="statPatchLoss" class="loss-text"></span></div>
+            <span id="statPatchRate" class="stat-sub">-</span>
+          </div>
         </div>
       </section>
 
@@ -187,6 +194,7 @@
       <div class="content-toolbar">
         <div class="toolbar-title-group">
           <span class="toolbar-badge"><i data-lucide="sparkles" style="width:14px;height:14px;"></i> 아수라장</span>
+          <button id="btnOpenStats" class="btn-stats" title="증강별 승률 · 함께한 소환사 · 패치별 승률"><i data-lucide="bar-chart-3"></i><span>통계</span></button>
         </div>
 
         <div class="toolbar-filters-group">
@@ -280,6 +288,26 @@
       <div id="dexGridContainer" class="dex-grid">
         <!-- 증강체 카드 렌더링 -->
       </div>
+    </div>
+  </div>
+
+  <!-- 통계 모달 -->
+  <div id="statsModal" class="modal-overlay hidden">
+    <div class="modal-content stats-modal-content">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="bar-chart-3" class="modal-icon"></i>
+          <h2>통계</h2>
+          <span id="statsSubtitle" class="stats-subtitle"></span>
+        </div>
+        <button id="btnCloseStatsModal" class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="stats-tabs">
+        <button class="stats-tab active" data-tab="augments">증강별 승률</button>
+        <button class="stats-tab" data-tab="allies">함께한 소환사</button>
+        <button class="stats-tab" data-tab="patches">패치별 승률</button>
+      </div>
+      <div id="statsBody" class="stats-body"></div>
     </div>
   </div>
 
