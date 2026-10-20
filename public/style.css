@@ -2275,10 +2275,32 @@ body {
 }
 
 .app-version {
+  white-space: nowrap;
+  cursor: pointer;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0;
   opacity: 0.45;
   vertical-align: middle;
   -webkit-text-fill-color: var(--text-secondary, #94a3b8);
+}
+
+.update-badge {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  vertical-align: middle;
+  text-decoration: none;
+  background: rgba(168, 85, 247, 0.18);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  -webkit-text-fill-color: #d8b4fe;
+}
+
+.update-badge:hover {
+  background: rgba(168, 85, 247, 0.32);
 }

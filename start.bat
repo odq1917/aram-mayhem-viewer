@@ -1,28 +1,28 @@
 @echo off
 chcp 65001 > nul
-title 롤 증강 칼바람 전적 검색기 (ARAM Mayhem Search Viewer)
 cd /d "%~dp0"
 
-echo =======================================================
-echo  ⚔️ 롤 증강 칼바람 전적 검색기 (ARAM Mayhem Viewer)
-echo =======================================================
-echo.
+if exist "runtime\node.exe" goto launch
 
-if exist "runtime\node.exe" (
-    echo [실행] 내장 런타임으로 서버 실행 및 브라우저 오픈...
-    start "" "http://localhost:3500"
-    "runtime\node.exe" server.js
+where node > nul 2>&1
+if errorlevel 1 (
+    echo [오류] Node.js를 찾을 수 없습니다.
+    echo Portable 버전^(ARAM-Mayhem-Viewer-Portable^)을 받거나 Node.js를 설치해주세요.
     pause
-    exit /b
+    exit /b 1
 )
 
 if not exist node_modules (
-    echo [1/2] 필수 패키지 설치 중... (npm install)
-    call npm install
-    echo.
+    echo 처음 실행: 필수 패키지 설치 중... ^(npm install^)
+    call npm install --omit=dev --no-audit --no-fund
+    if errorlevel 1 (
+        echo [오류] 패키지 설치에 실패했습니다.
+        pause
+        exit /b 1
+    )
 )
 
-echo [2/2] 서버 실행 및 브라우저 오픈...
-start "" "http://localhost:3500"
-node server.js
-pause
+:launch
+rem 서버는 창 없이 백그라운드로 실행되고, 준비되면 브라우저가 열립니다.
+start "" wscript.exe "%~dp0launcher.vbs" --open
+exit /b 0

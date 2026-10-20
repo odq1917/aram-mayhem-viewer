@@ -65,29 +65,35 @@
   <iframe id=protocolFrame style=display:none;></iframe>
 
   <script>
-    // 1. 백그라운드 서버 실행 프로토콜 호출
-    const frame = document.getElementById('protocolFrame');
-    frame.src = 'aram-mayhem://open';
+    const DASHBOARD = 'http://localhost:3500';
 
-    // 2. 서버가 응답할 때까지 스마트 헬스체크 후 자동 이동
-    let attempts = 0;
-    const maxAttempts = 25;
-
-    async function checkAndRedirect() {
-      attempts++;
+    // 서버 응답 여부만 확인 (file:// 페이지라 응답 내용은 읽지 않음)
+    async function serverIsUp() {
       try {
-        await fetch('http://localhost:3500/api/status', { mode: 'no-cors' });
-        window.location.replace('http://localhost:3500');
+        await fetch(DASHBOARD + '/api/ping', { mode: 'no-cors', signal: AbortSignal.timeout(800) });
+        return true;
       } catch (e) {
-        if (attempts < maxAttempts) {
-          setTimeout(checkAndRedirect, 250);
-        } else {
-          window.location.replace('http://localhost:3500');
-        }
+        return false;
       }
     }
 
-    setTimeout(checkAndRedirect, 350);
+    async function start() {
+      // 1. 이미 켜져 있으면 바로 이동 (서버 중복 실행 방지)
+      if (await serverIsUp()) {
+        window.location.replace(DASHBOARD);
+        return;
+      }
+
+      // 2. 꺼져 있으면 프로토콜로 백그라운드 서버 실행 후 응답 대기
+      document.getElementById('protocolFrame').src = 'aram-mayhem://open';
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 250));
+        if (await serverIsUp()) break;
+      }
+      window.location.replace(DASHBOARD);
+    }
+
+    start();
   </script>
 </body>
 </html>

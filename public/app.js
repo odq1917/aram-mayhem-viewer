@@ -1411,8 +1411,42 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#39;');
   }
 
+  // 업데이트 확인 (새 릴리스가 있으면 버전 옆에 배지 표시)
+  const appVersionEl = document.getElementById('appVersion');
+  const updateBadge = document.getElementById('updateBadge');
+  async function checkForUpdate(force = false) {
+    try {
+      const res = await fetch(`/api/update-check${force ? '?force=1' : ''}`);
+      const info = await res.json();
+      if (info.hasUpdate && info.url) {
+        updateBadge.href = info.url;
+        updateBadge.textContent = `새 버전 v${info.latest}`;
+        updateBadge.title = `${info.title || ''} — 클릭하면 다운로드 페이지가 열립니다.`;
+        updateBadge.classList.remove('hidden');
+      } else {
+        updateBadge.classList.add('hidden');
+      }
+      return info;
+    } catch (e) {
+      return null;
+    }
+  }
+  if (appVersionEl) {
+    let checking = false;
+    appVersionEl.addEventListener('click', async () => {
+      if (checking) return;
+      checking = true;
+      const label = appVersionEl.textContent;
+      appVersionEl.textContent = '확인 중...';
+      const info = await checkForUpdate(true);
+      appVersionEl.textContent = !info || info.error ? '확인 실패' : (info.hasUpdate ? label : '최신 버전');
+      setTimeout(() => { appVersionEl.textContent = label; checking = false; }, 2000);
+    });
+  }
+
   // 실행 시작
   checkLcuStatus();
+  checkForUpdate();
   loadAugmentsMeta();
   loadRecentSearches();
   setInterval(checkLcuStatus, 10000);

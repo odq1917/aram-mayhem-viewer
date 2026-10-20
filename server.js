@@ -3,6 +3,7 @@ const path = require('path');
 const lcu = require('./lcu-connector');
 const meta = require('./meta-manager');
 const historyStore = require('./history-store');
+const updateChecker = require('./update-checker');
 
 const { version: APP_VERSION } = require('./package.json');
 
@@ -41,6 +42,16 @@ app.param('gameId', (req, res, next, value) => {
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// 0. 서버 생존 확인 (런처/북마크 페이지용, LCU 조회 없이 즉시 응답)
+app.get('/api/ping', (req, res) => {
+  res.json({ ok: true, version: APP_VERSION });
+});
+
+// 0-1. 업데이트 확인 (GitHub 최신 릴리스와 현재 버전 비교, ?force=1 이면 캐시 무시)
+app.get('/api/update-check', async (req, res) => {
+  res.json(await updateChecker.check(req.query.force === '1'));
+});
 
 // 1. 상태 및 롤 클라이언트 연결 확인 API
 app.get('/api/status', async (req, res) => {
@@ -275,18 +286,13 @@ function registerProtocolHandler() {
   const { execSync } = require('child_process');
   const vbsPath = path.join(__dirname, 'launcher.vbs');
 
-  const vbsContent = [
-    'Set WshShell = CreateObject("WScript.Shell")',
-    'Set fso = CreateObject("Scripting.FileSystemObject")',
-    'scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)',
-    'nodeBin = "node"',
-    'If fso.FileExists(scriptDir & "\\runtime\\node.exe") Then nodeBin = """" & scriptDir & "\\runtime\\node.exe"""',
-    'WshShell.Run "cmd.exe /c cd /d """ & scriptDir & """ && " & nodeBin & " server.js", 0, False'
-  ].join('\r\n');
+  // launcher.vbs는 배포 파일에 포함됨 (창 없이 서버 실행 + 중복 실행 방지)
+  if (!fs.existsSync(vbsPath)) {
+    console.warn('[Protocol] launcher.vbs가 없어 북마크 자동 실행을 등록하지 않습니다.');
+    return;
+  }
 
   try {
-    fs.writeFileSync(vbsPath, vbsContent, 'utf8');
-
     // Windows .reg 파일 (UTF-16LE with BOM) 작성 후 reg import로 한국어 경로 100% 보존 등록
     const escapedVbs = vbsPath.split(path.sep).join('\\\\');
     const regLines = [
@@ -316,12 +322,19 @@ function registerProtocolHandler() {
 async function startServer() {
   await meta.init();
   registerProtocolHandler();
-  app.listen(PORT, HOST, () => {
+  const server = app.listen(PORT, HOST, () => {
     console.log(`=======================================================`);
     console.log(`⚡ 롤 증강 칼바람 전적 뷰어 (ARAM Mayhem Search Viewer) v${APP_VERSION}`);
     console.log(`🔗 대시보드 URL: http://localhost:${PORT}`);
     console.log(`📌 북마크 프로토콜: aram-mayhem://open`);
     console.log(`=======================================================`);
+  });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`이미 포트 ${PORT}에서 서버가 실행 중입니다. 이 인스턴스는 종료합니다.`);
+      process.exit(0);
+    }
+    throw err;
   });
 }
 
