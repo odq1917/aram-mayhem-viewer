@@ -280,7 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '전적을 불러오지 못했습니다.');
 
-      currentGames = hydrateGames(data.games || [], data.meta);
+      const loadedGames = hydrateGames(data.games || [], data.meta);
+      const arenaCount = loadedGames.filter(g => !g.isGap && g.isArena).length;
+      currentGames = includeArena ? loadedGames : loadedGames.filter(g => g.isGap || !g.isArena);
+      updateArenaToggle(arenaCount);
       prepareGamesIndex(currentGames);
       const actualGamesCount = currentGames.filter(g => !g.isGap).length;
 
@@ -403,6 +406,86 @@ document.addEventListener('DOMContentLoaded', () => {
     btnOpenDataFolder.addEventListener('click', () => fetch('/api/open-data-folder', { method: 'POST' }));
   }
 
+  // ===== 증강 출처 표시 =====
+  // 롤 전적에는 레벨 3/7/11/15에 고른 증강만 남고, 전환(골드/프리즘/혼돈)이 준 일반 증강은 기록되지 않음.
+  // 예외적으로 기록되는 것 (저장된 7,496명분 분석 결과):
+  //  - 나는 왕이다 보상(프리즘): 왕이 된 시점 순서대로 끼워짐
+  //  - 전환이 뽑아 준 증강이 또 전환류(전환/판도라)인 경우: 바로 뒤에 붙어서 기록됨
+  const TRANSMUTE_TIER = { '전환: 골드': 'gold', '전환: 프리즘': 'prismatic', '전환: 혼돈': 'any' };
+  const CHAINABLE = new Set(['전환: 골드', '전환: 프리즘', '전환: 혼돈', '판도라의 상자']);
+  const KING = '나는 왕이다';
+  const PANDORA = '판도라의 상자';
+
+  function annotateAugments(augs, champLevel, isArena) {
+    const list = augs.map(aug => ({ ...aug }));
+    if (isArena) return list; // 아레나는 증강 규칙이 달라 판별하지 않음
+    const picks = [3, 7, 11, 15].filter(l => (champLevel || 0) >= l).length;
+    let extra = list.length - picks;
+
+    for (let i = 1; i < list.length && extra > 0; i++) {
+      const tier = TRANSMUTE_TIER[list[i - 1].name];
+      if (tier && CHAINABLE.has(list[i].name) && (tier === 'any' || list[i].rarityCode === tier) && !list[i - 1].source) {
+        list[i].source = 'chain';
+        list[i].note = `↳ 앞의 '${list[i - 1].name}'이(가) 뽑아 준 증강입니다.`;
+        extra--;
+      }
+    }
+
+    const kingIdx = list.findIndex(x => x.name === KING);
+    if (kingIdx >= 0) {
+      const candidates = list.slice(kingIdx + 1).filter(x => x.rarityCode === 'prismatic' && !x.source);
+      if (extra > 0 && candidates.length === 1) {
+        candidates[0].source = 'king';
+        candidates[0].note = '👑 나는 왕이다 보상으로 얻은 증강입니다.';
+        list[kingIdx].note = '보상 증강도 함께 기록되어 있습니다. (👑 표시)';
+      } else if (extra > 0) {
+        list[kingIdx].note = '보상 증강이 기록되어 있지만 뒤의 프리즘 증강 중 어느 것인지는 구분할 수 없습니다.';
+      } else {
+        list[kingIdx].note = '이 경기에는 보상 증강 기록이 없습니다. (왕이 되기 전에 게임이 끝난 경우 등)';
+      }
+    }
+
+    for (const x of list) {
+      if (TRANSMUTE_TIER[x.name] && !x.note) {
+        x.note = '이 증강이 준 결과 증강은 롤 전적에 기록되지 않아 확인할 수 없습니다.';
+      } else if (TRANSMUTE_TIER[x.name] && x.source === 'chain') {
+        x.note += ' 이 증강이 다시 준 결과는 기록되지 않습니다.';
+      }
+      if (x.name === PANDORA) {
+        x.note = (x.note ? x.note + ' ' : '') + '판도라의 상자로 바뀐 증강은 롤 전적에 반영되지 않아, 원래 고른 증강이 표시됩니다.';
+      }
+    }
+    return list;
+  }
+
+  const AUG_SOURCE_MARK = { king: '👑', chain: '↳' };
+  function augSourceAttrs(aug) {
+    return ` data-aug-note="${encodeURIComponent(aug.note || '')}"`;
+  }
+  function augSourceMark(aug) {
+    return aug.source ? `<span class="aug-source-mark src-${aug.source}">${AUG_SOURCE_MARK[aug.source]}</span>` : '';
+  }
+
+  // 아레나 경기는 증강 규칙이 달라 기본으로 숨김 (선택은 브라우저에 기억)
+  let includeArena = false;
+  try { includeArena = localStorage.getItem('mayhem.includeArena') === '1'; } catch (e) {}
+  const arenaToggle = document.getElementById('arenaToggle');
+  const arenaToggleInput = document.getElementById('arenaToggleInput');
+  const arenaToggleCount = document.getElementById('arenaToggleCount');
+  function updateArenaToggle(count) {
+    if (!arenaToggle) return;
+    arenaToggle.classList.toggle('hidden', count === 0);
+    arenaToggleInput.checked = includeArena;
+    arenaToggleCount.textContent = count;
+  }
+  if (arenaToggleInput) {
+    arenaToggleInput.addEventListener('change', () => {
+      includeArena = arenaToggleInput.checked;
+      try { localStorage.setItem('mayhem.includeArena', includeArena ? '1' : '0'); } catch (e) {}
+      if (currentSummoner?.puuid) fetchMatches(currentSummoner.puuid, { keepFilters: true });
+    });
+  }
+
   // 서버의 경량 포맷(ID만 포함)을 렌더링용 객체 구조로 복원
   function hydrateGames(games, meta) {
     if (!meta) return games;
@@ -418,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         champion: meta.champions[p.championId] || fallbackChamp(p.championId),
         spells: (p.spellIds || []).map(id => meta.spells[id] || null),
         items: (p.itemIds || []).map(id => (id > 0 ? meta.items[id] || null : null)),
-        augments: (p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean)
+        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean), p.champLevel, g.isArena)
       }));
       // 게임 종료 화면에서 받은 '팀원 보호막' 값이 있으면 회복·보호 칸에 포함
       if (participants.some(p => p.ext?.totalDamageShieldedOnTeammates !== undefined)) {
@@ -1072,12 +1155,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const labelHtml = shortName.split('\n').map(line => escapeHtml(line)).join('<br>');
         html += `
           <div class="aug-slot-wrapper">
-            <div class="augment-slot ${aug.rarityCode}" 
-                 data-aug-id="${aug.id}" 
-                 data-aug-name="${escapeHtml(aug.name)}" 
-                 data-aug-desc="${encodeURIComponent(aug.styledDescription || aug.description || '')}" 
-                 data-aug-rarity="${aug.rarityLabel}" 
+            <div class="augment-slot ${aug.rarityCode}${aug.source ? ' has-source' : ''}"
+                 data-aug-id="${aug.id}"
+                 data-aug-name="${escapeHtml(aug.name)}"
+                 data-aug-desc="${encodeURIComponent(aug.styledDescription || aug.description || '')}"
+                 data-aug-rarity="${aug.rarityLabel}"${augSourceAttrs(aug)}
                  data-aug-icon="${aug.iconUrl}">
+              ${augSourceMark(aug)}
               <img src="${aug.iconUrl}" alt="${escapeHtml(aug.name)}" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
             </div>
             <span class="aug-name-label" title="${escapeHtml(aug.name)}">${labelHtml}</span>
@@ -1127,12 +1211,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const rows = participants.map(p => {
       const augsMini = (p.augments || []).map(aug => `
-        <div class="aug-mini-slot ${aug.rarityCode}" 
-             data-aug-id="${aug.id}" 
-             data-aug-name="${escapeHtml(aug.name)}" 
-             data-aug-desc="${encodeURIComponent(aug.styledDescription || aug.description || '')}" 
-             data-aug-rarity="${aug.rarityLabel}" 
+        <div class="aug-mini-slot ${aug.rarityCode}${aug.source ? ' has-source' : ''}"
+             data-aug-id="${aug.id}"
+             data-aug-name="${escapeHtml(aug.name)}"
+             data-aug-desc="${encodeURIComponent(aug.styledDescription || aug.description || '')}"
+             data-aug-rarity="${aug.rarityLabel}"${augSourceAttrs(aug)}
              data-aug-icon="${aug.iconUrl}">
+          ${augSourceMark(aug)}
           <img src="${aug.iconUrl}" alt="${escapeHtml(aug.name)}" loading="lazy">
         </div>
       `).join('');
@@ -1259,6 +1344,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tooltipAugName.textContent = name;
     tooltipAugDesc.innerHTML = desc || '증강체 효과 설명이 없습니다.';
+    const note = decodeURIComponent(slot.getAttribute('data-aug-note') || '');
+    if (note) {
+      const noteEl = document.createElement('div');
+      noteEl.className = 'tooltip-aug-note';
+      noteEl.textContent = note;
+      tooltipAugDesc.appendChild(noteEl);
+    }
     tooltipAugRarity.textContent = rarity;
     tooltipAugRarity.className = `tooltip-rarity-badge badge-${slot.classList.contains('prismatic') ? 'prismatic' : (slot.classList.contains('gold') ? 'gold' : 'silver')}`;
     tooltipAugImg.src = icon;
