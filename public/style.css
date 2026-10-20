@@ -1022,9 +1022,8 @@ body {
   contain-intrinsic-size: auto 130px;
   margin-left: 0;
   position: relative;
-  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
-              margin-left 0.3s cubic-bezier(0.25, 1, 0.5, 1),
-              box-shadow 0.3s ease;
+  /* 폭은 애니메이션하지 않음: 넓어지는 도중 상세 표가 1열→2열로 바뀌어 보이던 문제 방지 */
+  transition: box-shadow 0.3s ease;
 }
 
 .match-card:hover {
