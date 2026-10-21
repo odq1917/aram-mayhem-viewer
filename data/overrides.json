@@ -74,6 +74,48 @@
       "styledDescription": "<span class=\"stat-gold\">250골드</span>를 획득합니다.<br><br><b>[업그레이드된 죽음의 무도 효과]</b><br>• 자신이 받은 피해의 <span class=\"stat-armor\">(근접 40% / 원거리 15%)</span>만큼을 3초에 걸쳐 나누어 입습니다.<br>• <span class=\"stat-trigger\">처치 관여 시</span> <b>즉시</b> <span class=\"stat-hp\">(추가 공격력의 125%)</span>의 체력을 회복합니다.",
       "rarity": "kSilver",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/upgradedeathdance_small.png"
+    },
+    "3004": {
+      "name": "떴다, 징크스",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/overextender_small.png",
+      "description": "소환사 주문이 떴다, 징크스!로 변경됩니다.\n\n떴다, 징크스!: 적 챔피언, 구조물 또는 지형에 부딪히면 폭발하는 로켓에 올라탑니다. 로켓은 이동한 거리에 따라 대상 및 주변 적에게 (20~80 + 추가 공격력의 12% + 주문력의 8%) + 잃은 체력의 3% ~ (160~640 + 추가 공격력의 96% + 주문력의 64%) + 잃은 체력의 24%에 해당하는 물리 피해를 입힙니다.\n\n폭발 반경은 로켓의 이동 거리에 따라 증가합니다. 로켓에 탑승한 동안에는 무적 및 대상 지정 불가 상태가 됩니다.",
+      "styledDescription": "소환사 주문이 <b>떴다, 징크스!</b>로 변경됩니다.<br><br><b>떴다, 징크스!:</b> 적 챔피언, 구조물 또는 지형에 부딪히면 폭발하는 로켓에 올라탑니다. 로켓은 이동한 거리에 따라 대상 및 주변 적에게 <span class=\"stat-ad\">(20~80 + 추가 공격력의 12% + 주문력의 8%) + 잃은 체력의 3%</span> ~ <span class=\"stat-ad\">(160~640 + 추가 공격력의 96% + 주문력의 64%) + 잃은 체력의 24%에 해당하는 물리 피해</span>를 입힙니다.<br><br>폭발 반경은 로켓의 이동 거리에 따라 증가합니다. 로켓에 탑승한 동안에는 <span class=\"stat-special\">무적</span> 및 <span class=\"stat-special\">대상 지정 불가</span> 상태가 됩니다."
+    },
+    "3055": {
+      "name": "궁극의 반복",
+      "rarity": "kSilver",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/zealot_large.png",
+      "description": "궁극기 가속이 50 증가합니다.",
+      "styledDescription": "<span class=\"stat-speed\">궁극기 가속</span>이 50 증가합니다."
+    },
+    "3078": {
+      "name": "붐 앤 베이스",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/theboomandthebass_small.png",
+      "description": "스킬을 사용한 후 6초 내에 가하는 기본 공격이 빨라지고 적중 시 (50~200 + 추가 공격력의 50% + 주문력의 30%)의 마법 피해를 입히며, 2초에 걸쳐 원래대로 돌아오는 75%~150%의 이동 속도를 얻습니다.",
+      "styledDescription": "스킬을 사용한 후 6초 내에 가하는 기본 공격이 빨라지고 <span class=\"stat-trigger\">적중 시</span> <span class=\"stat-ap\">(50~200 + 추가 공격력의 50% + 주문력의 30%)의 마법 피해</span>를 입히며, 2초에 걸쳐 원래대로 돌아오는 <span class=\"stat-speed\">75%~150%의 이동 속도</span>를 얻습니다."
+    },
+    "3079": {
+      "name": "죽음의 춤",
+      "rarity": "kPrismatic",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/totentanz_small.png",
+      "description": "소환사 주문이 죽음과 함께하는 춤으로 변경됩니다.\n\n죽음과 함께하는 춤: 5초 동안 불사 상태가 되고 전방으로 순간적으로 이동합니다.\n지속시간이 끝나기 전에 처치 관여를 달성하면 (250~1000 + 방어력의 1000% + 마법 저항력의 1000%)의 체력을 회복하고 원래 위치로 돌아가며, 이 소환사 주문의 재사용 대기시간이 20초 감소합니다. 그러지 못할 경우 사망합니다.",
+      "styledDescription": "소환사 주문이 <b>죽음과 함께하는 춤</b>으로 변경됩니다.<br><br><b>죽음과 함께하는 춤:</b> 5초 동안 <span class=\"stat-special\">불사</span> 상태가 되고 전방으로 순간적으로 이동합니다.<br>지속시간이 끝나기 전에 <span class=\"stat-trigger\">처치 관여</span>를 달성하면 <span class=\"stat-hp\">(250~1000 + 방어력의 1000% + 마법 저항력의 1000%)의 체력</span>을 회복하고 원래 위치로 돌아가며, 이 소환사 주문의 재사용 대기시간이 20초 감소합니다. 그러지 못할 경우 <span class=\"stat-ad\">사망합니다.</span>"
+    },
+    "3088": {
+      "name": "핏빛 코발트",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/genericabilityaugmenticon_gold.png",
+      "description": "혜성의 창 스킬 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 (100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해를 입히고 혜성의 창 재사용 대기시간이 65% 감소합니다.",
+      "styledDescription": "<span class=\"stat-gold\">혜성의 창</span> 스킬 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 <span class=\"stat-ap\">(100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해</span>를 입히고 <span class=\"stat-gold\">혜성의 창</span> 재사용 대기시간이 65% 감소합니다."
+    },
+    "3163": {
+      "name": "황홀한 나비",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/enchantedbuttery_small.png",
+      "description": "아군 챔피언의 체력을 회복시키거나 보호막을 씌우면 주변에 나비가 모입니다.\n\n나비를 7마리 모은 후 적 챔피언에게 피해를 입히면 모든 나비가 날아가 각각 (50~100 + 추가 체력의 1% + 회복 및 보호막 효과의 30000% + 주문력의 10%)의 마법 피해를 입히며, 연달아 적중하면 75%의 피해를 입힙니다.",
+      "styledDescription": "아군 챔피언의 <span class=\"stat-hp\">체력을 회복</span>시키거나 <span class=\"stat-mr\">보호막을 씌우면</span> 주변에 <span class=\"stat-special\">나비</span>가 모입니다.<br><br><span class=\"stat-special\">나비</span>를 7마리 모은 후 적 챔피언에게 피해를 입히면 모든 나비가 날아가 각각 <span class=\"stat-ap\">(50~100 + 추가 체력의 1% + 회복 및 보호막 효과의 30000% + 주문력의 10%)의 마법 피해</span>를 입히며, 연달아 적중하면 75%의 피해를 입힙니다."
     }
   },
   "items": {

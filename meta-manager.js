@@ -50,7 +50,7 @@ function isArenaGame(game) {
 const RARITY_LABELS = { kSilver: '실버', kGold: '골드', kPrismatic: '프리즘' };
 const RARITY_CODES = { kSilver: 'silver', kGold: 'gold', kPrismatic: 'prismatic' };
 const DEFAULT_AUG_ICON = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg';
-const CACHE_REFRESH_MS = 12 * 60 * 60 * 1000; // 게임 데이터(증강·아이템 등) 12시간마다 다시 받기
+const CACHE_REFRESH_MS = 3 * 60 * 60 * 1000; // 게임 데이터(증강·아이템 등) 3시간마다 다시 받기 (패치 당일 빠르게 반영)
 
 class MetaManager {
   constructor() {
@@ -79,6 +79,11 @@ class MetaManager {
     ]);
 
     this.initialized = true;
+    // 서버가 오래 켜져 있어도 새 패치 데이터가 반영되도록 주기적으로 다시 확인
+    setInterval(() => {
+      Promise.all([this.loadAugments(), this.loadChampions(), this.loadItems(), this.loadSpells(), this.loadPerks()])
+        .catch(e => console.warn('[MetaManager] 주기 갱신 실패:', e.message));
+    }, CACHE_REFRESH_MS).unref();
     console.log(`[MetaManager] 메타데이터 초기화 완료! (증강체 ${Object.keys(this.augments).length}개 로드됨)`);
   }
 
