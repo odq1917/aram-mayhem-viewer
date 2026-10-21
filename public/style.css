@@ -1500,8 +1500,9 @@ body {
 /* Match Detail Drawer (10인 상세 뷰 - 초경량 GPU 마스크 슬라이드 & 10인 순차 등장) */
 .match-detail-drawer {
   display: none;
-  background: #090e17;
-  border-top: 1px solid var(--border-color);
+  /* 불투명 배경이면 카드 위쪽의 그라데이션(페더)이 경계에서 칼로 자른 듯 끊김 → 반투명으로 서서히 어둡게 */
+  background: linear-gradient(180deg, rgba(4, 7, 13, 0.28) 0%, rgba(4, 7, 13, 0.62) 64px, rgba(4, 7, 13, 0.62) 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding: 16px 20px;
   overflow-x: auto;
 }
@@ -2772,7 +2773,7 @@ body {
 .fs-table th,
 .fs-table td {
   padding: 6px 8px;
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
@@ -2790,7 +2791,7 @@ body {
   left: 0;
   z-index: 1;
   min-width: 170px;
-  text-align: left;
+  text-align: center;
   color: var(--text-secondary, #94a3b8);
   background: #111827;
 }
@@ -2810,7 +2811,7 @@ body {
   display: block;
   width: 28px;
   height: 28px;
-  margin: 0 0 4px auto;
+  margin: 0 auto 4px;
   border-radius: 50%;
 }
 

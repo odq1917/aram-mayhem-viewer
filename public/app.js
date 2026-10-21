@@ -1293,8 +1293,48 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    card.classList.toggle('expanded');
+    toggleCardExpanded(card);
   };
+
+  // 펼치기/접기: 카드 폭은 즉시 최종값으로 바꾸고(상세 표 배치가 중간에 바뀌지 않도록),
+  // 보이는 영역(clip-path)만 가운데에서 양옆으로 열리듯 애니메이션
+  const EXPAND_EASE = 'cubic-bezier(0.25, 1, 0.5, 1)';
+  function toggleCardExpanded(card) {
+    if (card._expandAnim) card._expandAnim.cancel();
+    const canAnimate = typeof card.animate === 'function' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!card.classList.contains('expanded')) {
+      const before = card.getBoundingClientRect();
+      card.classList.add('expanded');
+      const after = card.getBoundingClientRect();
+      const side = Math.max(0, (after.width - before.width) / 2);
+      if (canAnimate) {
+        card._expandAnim = card.animate([
+          { clipPath: `inset(0 ${side}px ${after.height - before.height}px ${side}px round 16px)` },
+          { clipPath: 'inset(0 0 0 0 round 16px)' }
+        ], { duration: 340, easing: EXPAND_EASE });
+      }
+      return;
+    }
+
+    if (!canAnimate) {
+      card.classList.remove('expanded');
+      return;
+    }
+    const rect = card.getBoundingClientRect();
+    const listWidth = card.parentElement.getBoundingClientRect().width;
+    const summaryHeight = card.querySelector('.match-summary-row').getBoundingClientRect().height;
+    const side = Math.max(0, (rect.width - listWidth) / 2);
+    const anim = card.animate([
+      { clipPath: 'inset(0 0 0 0 round 16px)' },
+      { clipPath: `inset(0 ${side}px ${rect.height - summaryHeight}px ${side}px round 16px)` }
+    ], { duration: 240, easing: EXPAND_EASE });
+    card._expandAnim = anim;
+    anim.onfinish = () => {
+      card.classList.remove('expanded');
+      card._expandAnim = null;
+    };
+  }
 
   // 상세 서랍에서 다른 소환사 닉네임 클릭 시 해당 소환사 전적 검색
   matchListContainer.addEventListener('click', (e) => {
