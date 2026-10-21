@@ -19,6 +19,21 @@
       "rarity": "kPrismatic",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/cherry/augments/icons/quest_woogletswitchcap_small.png"
     },
+    "1046": {
+      "name": "지옥불 영혼",
+      "description": "기본 스킬 또는 기본 공격으로 적을 공격할 때마다 추가 피해를 입히는 지옥불 영혼을 얻습니다.\n\n[상세 효과]\n기본 공격 또는 피해를 주는 스킬 사용 시 대상 주변에 폭발을 일으켜 100 (+추가 공격력의 22.5%) (+주문력의 13.5%) (+추가 체력의 2.75%)의 적응형 피해를 입힙니다. (재사용 대기시간 3초)",
+      "styledDescription": "기본 스킬 또는 기본 공격으로 적을 공격할 때마다 추가 피해를 입히는 지옥불 영혼을 얻습니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">기본 공격 또는 피해를 주는 스킬 사용 시 대상 주변에 폭발을 일으켜 <span class=\"stat-true\">100 <span class=\"stat-ad\">(+추가 공격력의 22.5%)</span> <span class=\"stat-ap\">(+주문력의 13.5%)</span> <span class=\"stat-hp\">(+추가 체력의 2.75%)</span>의 적응형 피해</span>를 입힙니다. (재사용 대기시간 3초)</span>"
+    },
+    "1057": {
+      "name": "대지의 영혼",
+      "description": "전투에서 벗어나면 잠시 동안 보호막을 획득하는 대지의 영혼을 얻습니다.\n\n[상세 효과]\n5초 동안 피해를 입지 않으면 220 (+추가 공격력의 16%) (+주문력의 12%) (+추가 체력의 12%)의 피해를 흡수하는 보호막을 얻습니다.",
+      "styledDescription": "전투에서 벗어나면 잠시 동안 <span class=\"stat-hp\">보호막</span>을 획득하는 대지의 영혼을 얻습니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">5초 동안 피해를 입지 않으면 <span class=\"stat-armor\">220</span> <span class=\"stat-ad\">(+추가 공격력의 16%)</span> <span class=\"stat-ap\">(+주문력의 12%)</span> <span class=\"stat-hp\">(+추가 체력의 12%)</span>의 피해를 흡수하는 <span class=\"stat-armor\">보호막</span>을 얻습니다.</span>"
+    },
+    "1060": {
+      "name": "바다의 영혼",
+      "description": "적에게 피해를 입힌 후 높은 체력 및 마나 재생 효과를 얻는 바다의 영혼을 획득합니다.\n\n[상세 효과]\n적에게 피해를 입히면 4초에 걸쳐 150 (+추가 공격력의 26%) (+주문력의 17%) (+추가 체력의 7%)의 체력과 100 (+최대 마나의 3.5%)의 마나를 회복합니다.\n미니언과 몬스터에게 입힌 피해로는 회복 효과가 30%만 적용됩니다.",
+      "styledDescription": "적에게 피해를 입힌 후 높은 <span class=\"stat-hp\">체력</span> 및 마나 재생 효과를 얻는 바다의 영혼을 획득합니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">적에게 피해를 입히면 4초에 걸쳐 <span class=\"stat-hp\">150</span> <span class=\"stat-ad\">(+추가 공격력의 26%)</span> <span class=\"stat-ap\">(+주문력의 17%)</span> <span class=\"stat-hp\">(+추가 체력의 7%)의 체력</span>과 <span class=\"stat-mr\">100 (+최대 마나의 3.5%)의 마나</span>를 회복합니다.<br>미니언과 몬스터에게 입힌 피해로는 회복 효과가 30%만 적용됩니다.</span>"
+    },
     "1154": {
       "name": "우르프의 챔피언",
       "description": "퀘스트: 적 챔피언 처치 관여 18회를 달성해야 합니다.\n보상: 퀘스트를 완료하면 황금 뒤집개를 획득합니다.\n\n[황금 뒤집개 효과]\n공격력 +90, 주문력 +110, 공격 속도 +40%, 치명타 확률 +15%, 체력 +200, 방어력 +20, 마법 저항력 +20, 마나 +200, 스킬 가속 +20, 이동 속도 +10%, 생명력 흡수 +10%, 기본 체력 재생 +50%, 기본 마나 재생 +100%\n\n고유 지속 효과 - 불이야!:\n근처 적에게 화상 효과를 적용하고 스킬 재사용 대기시간이 감소합니다. 적 챔피언을 향해 이동할 때 이동 속도가 증가하고 공격 속도 및 마나 재생 속도가 증가합니다. 하지만 입는 피해량이 증가하며, 받는 보호막과 회복 효과가 감소합니다.",
@@ -39,6 +54,11 @@
       "styledDescription": "<span class=\"stat-gold\">250골드</span>를 획득합니다.<br><br><b>[업그레이드된 징수의 총 효과]</b><br>• <span class=\"stat-trigger\">처형 시</span> 추가 골드가 25골드에서 <span class=\"stat-gold\">50골드</span>로 증가합니다.<br>• 적 <span class=\"stat-trigger\">처형 시</span>마다 처형 기준치가 <span class=\"stat-crit\">0.5%p</span>씩 영구히 증가합니다. (기본 5% → 최대 <span class=\"stat-crit\">12.5%</span>)",
       "rarity": "kSilver",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/upgradecollector_small.png"
+    },
+    "1416": {
+      "name": "마법공학의 영혼",
+      "description": "주기적으로 스킬 또는 기본 공격으로 피해를 입히면 번개를 발사해 적에게 연쇄적으로 피해를 입히고 둔화시키는 마법공학의 영혼을 얻습니다.\n\n[상세 효과]\n기본 공격이나 스킬로 적에게 피해를 입히면 번개를 발사해 25~50 (레벨에 따라)의 고정 피해를 입히고 (근접 45% / 원거리 35%) (+추가 체력의 0.005%) (+주문력의 0.01%) (+추가 공격력의 0.03%)만큼 둔화시키며, 둔화 효과는 2초에 걸쳐 사라집니다. 이후 번개는 근처 4명의 적에게 날아가 같은 피해를 주고 둔화 효과를 적용합니다.\n다른 대상에게 받은 둔화 효과는 중첩되며, 원거리 적을 공격하면 둔화 효과가 더 느리게 해제됩니다.",
+      "styledDescription": "주기적으로 스킬 또는 기본 공격으로 피해를 입히면 번개를 발사해 적에게 연쇄적으로 피해를 입히고 <span class=\"stat-cc\">둔화</span>시키는 마법공학의 영혼을 얻습니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">기본 공격이나 스킬로 적에게 피해를 입히면 번개를 발사해 <span class=\"stat-true\">25~50 (레벨에 따라)의 고정 피해</span>를 입히고 <span class=\"stat-cc\">(근접 45% / 원거리 35%)</span> <span class=\"stat-hp\">(+추가 체력의 0.005%)</span> <span class=\"stat-ap\">(+주문력의 0.01%)</span> <span class=\"stat-ad\">(+추가 공격력의 0.03%)</span>만큼 <span class=\"stat-cc\">둔화</span>시키며, 둔화 효과는 2초에 걸쳐 사라집니다. 이후 번개는 근처 4명의 적에게 날아가 같은 피해를 주고 둔화 효과를 적용합니다.<br>다른 대상에게 받은 둔화 효과는 중첩되며, 원거리 적을 공격하면 둔화 효과가 더 느리게 해제됩니다.</span>"
     },
     "2010": {
       "name": "한 발에 두 놈",
