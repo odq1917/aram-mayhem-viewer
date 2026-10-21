@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ===== 증강 출처 표시 =====
-  // 롤 전적에는 레벨 3/7/11/15에 고른 증강만 남고 (16.21 새 시즌부터는 5개), 전환(골드/프리즘/혼돈)이 준 일반 증강은 기록되지 않음.
+  // 롤 전적에는 레벨 3/7/11/15에 고른 증강(+ 16.21 시즌부터 테마 기믹 보너스 증강)만 남고, 전환(골드/프리즘/혼돈)이 준 일반 증강은 기록되지 않음.
   // 예외적으로 기록되는 것 (저장된 7,496명분 분석 결과):
   //  - 나는 왕이다 보상(프리즘): 왕이 된 시점 순서대로 끼워짐
   //  - 전환이 뽑아 준 증강이 또 전환류(전환/판도라)인 경우: 바로 뒤에 붙어서 기록됨
@@ -413,14 +413,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const KING = '나는 왕이다';
   const PANDORA = '판도라의 상자';
 
-  // 16.21(새 시즌)부터는 기본 선택이 5개 (레벨 기준은 아직 미확인 → 최대 5개로 보수적으로 계산)
-  const isNewSeasonPatch = v => {
-    const [major, minor] = String(v || '').split('.').map(Number);
-    return major > 16 || (major === 16 && minor >= 21);
-  };
-  function annotateAugments(augs, champLevel, gameVersion) {
+  // 기본 선택은 레벨 3/7/11/15의 4개. 16.21 시즌부터는 게임별 테마 기믹으로 증강을 더 받을 수 있어
+  // 최대 6개까지 표시하며, 그 경우에도 기준은 4개로 둠
+  function annotateAugments(augs, champLevel) {
     const list = augs.map(aug => ({ ...aug }));
-    const picks = isNewSeasonPatch(gameVersion) ? 5 : [3, 7, 11, 15].filter(l => (champLevel || 0) >= l).length;
+    const picks = [3, 7, 11, 15].filter(l => (champLevel || 0) >= l).length;
     let extra = list.length - picks;
 
     for (let i = 1; i < list.length && extra > 0; i++) {
@@ -482,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
         champion: meta.champions[p.championId] || fallbackChamp(p.championId),
         spells: (p.spellIds || []).map(id => meta.spells[id] || null),
         items: (p.itemIds || []).map(id => (id > 0 ? meta.items[id] || null : null)),
-        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean), p.champLevel, g.gameVersion)
+        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean), p.champLevel)
       }));
       // 게임 종료 화면에서 받은 '팀원 보호막' 값이 있으면 회복·보호 칸에 포함
       if (participants.some(p => p.ext?.totalDamageShieldedOnTeammates !== undefined)) {

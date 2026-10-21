@@ -82,12 +82,26 @@
       "description": "소환사 주문이 떴다, 징크스!로 변경됩니다.\n\n떴다, 징크스!: 적 챔피언, 구조물 또는 지형에 부딪히면 폭발하는 로켓에 올라탑니다. 로켓은 이동한 거리에 따라 대상 및 주변 적에게 (20~80 + 추가 공격력의 12% + 주문력의 8%) + 잃은 체력의 3% ~ (160~640 + 추가 공격력의 96% + 주문력의 64%) + 잃은 체력의 24%에 해당하는 물리 피해를 입힙니다.\n\n폭발 반경은 로켓의 이동 거리에 따라 증가합니다. 로켓에 탑승한 동안에는 무적 및 대상 지정 불가 상태가 됩니다.",
       "styledDescription": "소환사 주문이 <b>떴다, 징크스!</b>로 변경됩니다.<br><br><b>떴다, 징크스!:</b> 적 챔피언, 구조물 또는 지형에 부딪히면 폭발하는 로켓에 올라탑니다. 로켓은 이동한 거리에 따라 대상 및 주변 적에게 <span class=\"stat-ad\">(20~80 + 추가 공격력의 12% + 주문력의 8%) + 잃은 체력의 3%</span> ~ <span class=\"stat-ad\">(160~640 + 추가 공격력의 96% + 주문력의 64%) + 잃은 체력의 24%에 해당하는 물리 피해</span>를 입힙니다.<br><br>폭발 반경은 로켓의 이동 거리에 따라 증가합니다. 로켓에 탑승한 동안에는 <span class=\"stat-special\">무적</span> 및 <span class=\"stat-special\">대상 지정 불가</span> 상태가 됩니다."
     },
+    "3049": {
+      "name": "장갑 충격",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/armoredimpact_small.png",
+      "description": "스킬 사용 후 다음 기본 공격 시 주변 적에게 (추가 방어력의 250% + 50~125)의 추가 물리 피해를 입힙니다.",
+      "styledDescription": "스킬 사용 후 다음 기본 공격 시 주변 적에게 <span class=\"stat-armor\">(추가 방어력의 250% + 50~125)</span>의 <span class=\"stat-ad\">추가 물리 피해</span>를 입힙니다."
+    },
     "3055": {
       "name": "궁극의 반복",
       "rarity": "kSilver",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/zealot_large.png",
       "description": "궁극기 가속이 50 증가합니다.",
       "styledDescription": "<span class=\"stat-speed\">궁극기 가속</span>이 50 증가합니다."
+    },
+    "3075": {
+      "name": "고반동",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/genericabilityaugmenticon_gold.png",
+      "description": "실명 다트 스킬 피해량이 25% 증가하고 사용 시 플레이어를 뒤로 밀어냅니다.",
+      "styledDescription": "<span class=\"stat-gold\">실명 다트</span> 스킬 피해량이 25% 증가하고 사용 시 플레이어를 뒤로 밀어냅니다."
     },
     "3078": {
       "name": "붐 앤 베이스",
@@ -100,8 +114,15 @@
       "name": "죽음의 춤",
       "rarity": "kPrismatic",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/totentanz_small.png",
-      "description": "소환사 주문이 죽음과 함께하는 춤으로 변경됩니다.\n\n죽음과 함께하는 춤: 5초 동안 불사 상태가 되고 전방으로 순간적으로 이동합니다.\n지속시간이 끝나기 전에 처치 관여를 달성하면 (250~1000 + 방어력의 1000% + 마법 저항력의 1000%)의 체력을 회복하고 원래 위치로 돌아가며, 이 소환사 주문의 재사용 대기시간이 20초 감소합니다. 그러지 못할 경우 사망합니다.",
-      "styledDescription": "소환사 주문이 <b>죽음과 함께하는 춤</b>으로 변경됩니다.<br><br><b>죽음과 함께하는 춤:</b> 5초 동안 <span class=\"stat-special\">불사</span> 상태가 되고 전방으로 순간적으로 이동합니다.<br>지속시간이 끝나기 전에 <span class=\"stat-trigger\">처치 관여</span>를 달성하면 <span class=\"stat-hp\">(250~1000 + 방어력의 1000% + 마법 저항력의 1000%)의 체력</span>을 회복하고 원래 위치로 돌아가며, 이 소환사 주문의 재사용 대기시간이 20초 감소합니다. 그러지 못할 경우 <span class=\"stat-ad\">사망합니다.</span>"
+      "description": "소환사 주문이 죽음과 함께하는 춤으로 변경됩니다.\n\n죽음과 함께하는 춤: 5초 동안 불사 상태가 되고 전방으로 순간적으로 이동합니다.\n지속시간이 끝나기 전에 처치 관여를 달성하면 (250~1000 + 방어구 관통력의 1000% + 마법 관통력의 1000%)의 체력을 회복하고 원래 위치로 돌아가며, 이 소환사 주문의 재사용 대기시간이 20초 감소합니다. 그러지 못할 경우 사망합니다.",
+      "styledDescription": "소환사 주문이 <b>죽음과 함께하는 춤</b>으로 변경됩니다.<br><br><b>죽음과 함께하는 춤:</b> 5초 동안 <span class=\"stat-special\">불사</span> 상태가 되고 전방으로 순간적으로 이동합니다.<br>지속시간이 끝나기 전에 <span class=\"stat-trigger\">처치 관여</span>를 달성하면 <span class=\"stat-hp\">(250~1000 + 방어구 관통력의 1000% + 마법 관통력의 1000%)의 체력</span>을 회복하고 원래 위치로 돌아가며, 이 소환사 주문의 재사용 대기시간이 20초 감소합니다. 그러지 못할 경우 <span class=\"stat-ad\">사망합니다.</span>"
+    },
+    "3086": {
+      "name": "벌이다!!!",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/bees_small.png",
+      "description": "15~10초마다 적 챔피언에게 적중하는 다음 스킬이 대상에게 벌집을 던집니다. 충돌 시 벌집이 폭발하며 주변 모든 적 챔피언에게 벌이 달려들어 2초 동안 20%만큼 둔화시키고 (75~200 + 추가 공격력의 150% + 주문력의 70%)의 마법 피해를 입힙니다.\n\n벌은 적중 시 효과를 40%의 효율로 적용합니다.",
+      "styledDescription": "15~10초마다 적 챔피언에게 적중하는 다음 스킬이 대상에게 벌집을 던집니다. 충돌 시 벌집이 폭발하며 주변 모든 적 챔피언에게 <span class=\"stat-special\">벌</span>이 달려들어 2초 동안 20%만큼 <span class=\"stat-cc\">둔화</span>시키고 <span class=\"stat-ap\">(75~200 + 추가 공격력의 150% + 주문력의 70%)의 마법 피해</span>를 입힙니다.<br><br><span class=\"stat-special\">벌</span>은 <span class=\"stat-hit\">적중 시 효과</span>를 40%의 효율로 적용합니다."
     },
     "3088": {
       "name": "핏빛 코발트",
@@ -109,6 +130,20 @@
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/genericabilityaugmenticon_gold.png",
       "description": "혜성의 창 스킬 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 (100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해를 입히고 혜성의 창 재사용 대기시간이 65% 감소합니다.",
       "styledDescription": "<span class=\"stat-gold\">혜성의 창</span> 스킬 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 <span class=\"stat-ap\">(100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해</span>를 입히고 <span class=\"stat-gold\">혜성의 창</span> 재사용 대기시간이 65% 감소합니다."
+    },
+    "3116": {
+      "name": "전부 다 무너뜨려",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/takeemdowndowndown_small.png",
+      "description": "기본 공격 및 스킬이 적 챔피언에게 5초 동안 중첩을 1회 적용하고 (5~30 + 추가 공격력의 35% + 주문력의 15%) + 중첩당 (1~6 + 추가 공격력의 7% + 주문력의 3%)의 마법 피해를 입힙니다.\n\n중첩이 5회 적용된 적에게 피해를 입히면 중첩을 소모해 (15% + 추가 공격 속도의 5% + 스킬 가속의 0.15%)의 잃은 체력 비례 마법 피해를 입히고 입힌 피해량의 67%만큼 체력을 회복합니다.",
+      "styledDescription": "기본 공격 및 스킬이 적 챔피언에게 5초 동안 중첩을 1회 적용하고 <span class=\"stat-ap\">(5~30 + 추가 공격력의 35% + 주문력의 15%) + 중첩당 (1~6 + 추가 공격력의 7% + 주문력의 3%)의 마법 피해</span>를 입힙니다.<br><br>중첩이 5회 적용된 적에게 피해를 입히면 중첩을 소모해 <span class=\"stat-ap\">(15% + 추가 공격 속도의 5% + 스킬 가속의 0.15%)의 잃은 체력 비례 마법 피해</span>를 입히고 입힌 피해량의 67%만큼 <span class=\"stat-hp\">체력을 회복</span>합니다."
+    },
+    "3132": {
+      "name": "왕관의 무게",
+      "rarity": "kGold",
+      "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/heavyisthecrown_small.png",
+      "description": "공격력을 10, 주문력을 25 얻고 추가 공격력, 추가 주문력, 총공격 속도가 10% 증가합니다. 전투 중 전체 이동 속도가 5% 감소합니다.\n\n처치 관여 시 부담 중첩을 얻어 추가 공격력, 추가 주문력, 총공격 속도가 5% 증가하고 중첩당 이동 속도가 2.5% 감소합니다. (최소 50%)\n\n사망 시 중첩의 50%를 잃습니다.",
+      "styledDescription": "<span class=\"stat-ad\">공격력</span>을 10, <span class=\"stat-ap\">주문력</span>을 25 얻고 <span class=\"stat-ad\">추가 공격력</span>, <span class=\"stat-ap\">추가 주문력</span>, <span class=\"stat-speed\">총공격 속도</span>가 10% 증가합니다. 전투 중 전체 <span class=\"stat-speed\">이동 속도</span>가 5% 감소합니다.<br><br><span class=\"stat-trigger\">처치 관여 시</span> 부담 중첩을 얻어 <span class=\"stat-ad\">추가 공격력</span>, <span class=\"stat-ap\">추가 주문력</span>, <span class=\"stat-speed\">총공격 속도</span>가 5% 증가하고 중첩당 <span class=\"stat-speed\">이동 속도</span>가 2.5% 감소합니다. (최소 50%)<br><br>사망 시 중첩의 50%를 잃습니다."
     },
     "3163": {
       "name": "황홀한 나비",
