@@ -579,8 +579,8 @@
       "name": "고반동",
       "rarity": "kGold",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/genericabilityaugmenticon_gold.png",
-      "description": "실명 다트 스킬 피해량이 25% 증가하고 사용 시 플레이어를 뒤로 밀어냅니다.",
-      "styledDescription": "<span class=\"stat-gold\">실명 다트</span> 스킬 피해량이 25% 증가하고 사용 시 플레이어를 뒤로 밀어냅니다."
+      "description": "특정 스킬 피해량이 25% 증가하고 해당 스킬 사용 시 플레이어를 뒤로 밀어냅니다.",
+      "styledDescription": "특정 스킬 피해량이 25% 증가하고 해당 스킬 사용 시 플레이어를 뒤로 밀어냅니다."
     },
     "3078": {
       "name": "붐 앤 베이스",
@@ -607,8 +607,8 @@
       "name": "핏빛 코발트",
       "rarity": "kGold",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/genericabilityaugmenticon_gold.png",
-      "description": "혜성의 창 스킬 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 (100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해를 입히고 혜성의 창 재사용 대기시간이 65% 감소합니다.",
-      "styledDescription": "<span class=\"stat-gold\">혜성의 창</span> 스킬 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 <span class=\"stat-ap\">(100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해</span>를 입히고 <span class=\"stat-gold\">혜성의 창</span> 재사용 대기시간이 65% 감소합니다."
+      "description": "특정 스킬로 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 (100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해를 입히고 해당 스킬 재사용 대기시간이 65% 감소합니다.",
+      "styledDescription": "특정 스킬로 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 <span class=\"stat-ap\">(100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해</span>를 입히고 해당 스킬 재사용 대기시간이 65% 감소합니다."
     },
     "3116": {
       "name": "전부 다 무너뜨려",

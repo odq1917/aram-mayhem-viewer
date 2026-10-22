@@ -1,6 +1,6 @@
 {
   "name": "aram-mayhem-search-viewer",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "description": "ARAM Mayhem Match History & Search Dashboard",
   "main": "server.js",
   "scripts": {
