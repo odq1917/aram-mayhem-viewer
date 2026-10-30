@@ -1708,10 +1708,23 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(`/api/update-check${force ? '?force=1' : ''}`);
       const info = await res.json();
-      if (info.hasUpdate && info.url) {
+      const up = info.update || {};
+      updateBadge.dataset.staged = up.staged || '';
+      if (up.staged) {
+        updateBadge.href = info.url || '#';
+        updateBadge.textContent = `v${up.staged} 업데이트 준비됨`;
+        updateBadge.title = '다음 실행 때 자동으로 적용됩니다. 클릭하면 지금 재시작해서 적용합니다.';
+        updateBadge.classList.remove('hidden');
+      } else if (info.hasUpdate && info.url) {
         updateBadge.href = info.url;
-        updateBadge.textContent = `새 버전 v${info.latest}`;
-        updateBadge.title = `${info.title || ''} — 클릭하면 다운로드 페이지가 열립니다.`;
+        if (up.auto && !up.error) {
+          updateBadge.textContent = `v${info.latest} 내려받는 중...`;
+          updateBadge.title = '새 버전을 백그라운드로 받고 있습니다. 다 받으면 다음 실행 때 자동으로 적용됩니다.';
+          setTimeout(() => checkForUpdate(), 5000);
+        } else {
+          updateBadge.textContent = `새 버전 v${info.latest}`;
+          updateBadge.title = `${info.title || ''} — 클릭하면 다운로드 페이지가 열립니다.`;
+        }
         updateBadge.classList.remove('hidden');
       } else {
         updateBadge.classList.add('hidden');
@@ -1721,6 +1734,26 @@ document.addEventListener('DOMContentLoaded', () => {
       return null;
     }
   }
+  // 받아 둔 업데이트를 지금 적용: 서버 재시작 → 새 버전으로 뜨면 새로고침
+  updateBadge?.addEventListener('click', async (e) => {
+    const staged = updateBadge.dataset.staged;
+    if (!staged) return;
+    e.preventDefault();
+    if (!confirm(`v${staged}(으)로 업데이트하려면 전적 검색기를 재시작합니다. 지금 적용할까요?`)) return;
+    updateBadge.textContent = '재시작 중...';
+    try {
+      await fetch('/api/update/restart', { method: 'POST' });
+    } catch (err) {}
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 500));
+      try {
+        const ping = await fetch('/api/ping').then(r => r.json());
+        if (ping.version === staged) return location.reload();
+      } catch (err) {}
+    }
+    updateBadge.textContent = '재시작 확인 실패 · 새로고침해 주세요';
+  });
+
   if (appVersionEl) {
     let checking = false;
     appVersionEl.addEventListener('click', async () => {

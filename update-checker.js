@@ -52,6 +52,8 @@ class UpdateChecker {
         url: release.html_url,
         title: release.name || `v${latest}`,
         publishedAt: release.published_at,
+        // 자동 업데이트용 첨부 파일 정보 (digest: GitHub 가 계산한 "sha256:..." 값)
+        assets: (release.assets || []).map(a => ({ name: a.name, url: a.browser_download_url, size: a.size, digest: a.digest || null })),
         checkedAt: Date.now()
       };
     } catch (err) {

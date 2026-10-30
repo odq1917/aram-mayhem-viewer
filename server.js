@@ -1,3 +1,10 @@
+// 지난 실행 때 받아 둔 새 버전이 있으면 서버를 띄우기 전에 적용하고 새 코드로 다시 실행
+const selfUpdate = require('./self-update');
+if (selfUpdate.applyPending()) {
+  selfUpdate.relaunch();
+  process.exit(0);
+}
+
 const express = require('express');
 const path = require('path');
 const lcu = require('./lcu-connector');
@@ -94,8 +101,21 @@ app.get('/api/ping', (req, res) => {
 });
 
 // 0-1. 업데이트 확인 (GitHub 최신 릴리스와 현재 버전 비교, ?force=1 이면 캐시 무시)
+// 새 버전이 있으면 백그라운드로 받아 두고, 다음 실행(또는 지금 재시작) 때 적용
 app.get('/api/update-check', async (req, res) => {
-  res.json(await updateChecker.check(req.query.force === '1'));
+  const { assets, ...info } = await updateChecker.check(req.query.force === '1');
+  if (info.hasUpdate) selfUpdate.stage({ ...info, assets });
+  res.json({ ...info, update: selfUpdate.status() });
+});
+
+// 받아 둔 새 버전을 바로 적용: 서버를 닫고 새로 띄우면 시작할 때 적용됨
+app.post('/api/update/restart', (req, res) => {
+  if (!selfUpdate.status().staged) return res.status(409).json({ error: '적용할 업데이트가 없습니다.' });
+  res.json({ ok: true });
+  setTimeout(() => {
+    selfUpdate.relaunch();
+    process.exit(0);
+  }, 300);
 });
 
 // 1. 상태 및 롤 클라이언트 연결 확인 API
@@ -381,8 +401,16 @@ async function startServer() {
     console.log(`📌 북마크 프로토콜: aram-mayhem://open`);
     console.log(`💾 데이터 폴더: ${dataDir.DATA_DIR}`);
     console.log(`=======================================================`);
+    // 실행할 때마다 업데이트 확인 → 새 버전이 있으면 백그라운드로 받아 둠
+    updateChecker.check(true).then(info => selfUpdate.stage(info)).catch(() => {});
   });
+  let listenRetries = 0;
   server.on('error', (err) => {
+    // 업데이트로 다시 실행된 경우 이전 프로세스가 포트를 놓을 때까지 잠시 재시도
+    if (err.code === 'EADDRINUSE' && process.env.MAYHEM_RELAUNCHED && listenRetries++ < 20) {
+      setTimeout(() => server.listen(PORT, HOST), 250);
+      return;
+    }
     if (err.code === 'EADDRINUSE') {
       console.log(`이미 포트 ${PORT}에서 서버가 실행 중입니다. 이 인스턴스는 종료합니다.`);
       process.exit(0);
