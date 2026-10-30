@@ -1,11 +1,11 @@
 {
   "name": "aram-mayhem-search-viewer",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "description": "ARAM Mayhem Match History & Search Dashboard",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/merge.test.js test/version.test.js test/data-dir.test.js"
+    "test": "node --test test/merge.test.js test/version.test.js test/data-dir.test.js test/overrides.test.js"
   },
   "dependencies": {
     "express": "^4.18.2"

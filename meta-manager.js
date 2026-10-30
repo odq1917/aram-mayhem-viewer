@@ -51,6 +51,23 @@ const RARITY_LABELS = { kSilver: '실버', kGold: '골드', kPrismatic: '프리�
 const RARITY_CODES = { kSilver: 'silver', kGold: 'gold', kPrismatic: 'prismatic' };
 const DEFAULT_AUG_ICON = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg';
 const CACHE_REFRESH_MS = 3 * 60 * 60 * 1000; // 게임 데이터(증강·아이템 등) 3시간마다 다시 받기 (패치 당일 빠르게 반영)
+// 직접 등록한 증강 설명은 재설치 없이 반영되도록 저장소의 최신본을 받아 씀
+const OVERRIDES_URL = 'https://raw.githubusercontent.com/odq1917/aram-mayhem-viewer/main/data/overrides.json';
+
+// 원격에서 받은 설명 HTML은 증강 툴팁에 쓰는 태그(span/b/i/br)와 class·style 속성만 남김
+function sanitizeDescriptionHtml(html) {
+  return String(html || '').replace(/<[^>]*>?/g, tag => {
+    const m = tag.match(/^<(\/?)(span|b|i|br)((?:\s+(?:class="[\w\s-]*"|style="[^"<>]*"))*)\s*\/?>$/i);
+    if (!m) return tag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const attrs = m[3].replace(/style="[^"]*"/gi, s => (/url\s*\(|expression|javascript:/i.test(s) ? '' : s));
+    return `<${m[1]}${m[2].toLowerCase()}${attrs}>`;
+  });
+}
+
+function isValidOverrides(o) {
+  return Boolean(o) && typeof o === 'object' && !Array.isArray(o) &&
+    typeof o.augments === 'object' && !Array.isArray(o.augments);
+}
 
 class MetaManager {
   constructor() {
@@ -79,9 +96,10 @@ class MetaManager {
     ]);
 
     this.initialized = true;
+    this.refreshOverrides();
     // 서버가 오래 켜져 있어도 새 패치 데이터가 반영되도록 주기적으로 다시 확인
     setInterval(() => {
-      Promise.all([this.loadAugments(), this.loadChampions(), this.loadItems(), this.loadSpells(), this.loadPerks()])
+      Promise.all([this.loadAugments(), this.loadChampions(), this.loadItems(), this.loadSpells(), this.loadPerks(), this.refreshOverrides()])
         .catch(e => console.warn('[MetaManager] 주기 갱신 실패:', e.message));
     }, CACHE_REFRESH_MS).unref();
     console.log(`[MetaManager] 메타데이터 초기화 완료! (증강체 ${Object.keys(this.augments).length}개 로드됨)`);
@@ -135,6 +153,7 @@ class MetaManager {
   }
 
   buildAugments(list) {
+    this.lastAugmentList = list;
 
     // 나무위키 아수라장 전용 효과 사전 로드
     let dict = {};
@@ -227,7 +246,9 @@ class MetaManager {
         id: Number(id),
         name: o.name || base.name || `증강체 (#${id})`,
         description: desc,
-        styledDescription: o.styledDescription || (o.description ? desc.replace(/\n/g, '<br>') : base.styledDescription) || desc,
+        styledDescription: o.styledDescription
+          ? sanitizeDescriptionHtml(o.styledDescription)
+          : (o.description ? sanitizeDescriptionHtml(desc).replace(/\n/g, '<br>') : base.styledDescription) || desc,
         rarity,
         rarityLabel: RARITY_LABELS[rarity] || '실버',
         rarityCode: RARITY_CODES[rarity] || 'silver',
@@ -273,6 +294,7 @@ class MetaManager {
   }
 
   buildItems(list) {
+    this.lastItemList = list;
     if (Array.isArray(list)) {
       list.forEach(item => {
         let iconUrl = '';
@@ -343,11 +365,44 @@ class MetaManager {
     }
   }
 
+  // 배포본(data/) 과 저장소에서 받은 최신본(사용자 데이터 폴더 cache/) 중 _revision 이 높은 쪽을 사용
+  // (같으면 받은 쪽 우선 → 리비전을 깜빡 안 올려도 최신 설명이 반영됨)
   loadOverrides() {
+    const read = p => {
+      try {
+        const o = JSON.parse(fs.readFileSync(p, 'utf8'));
+        return isValidOverrides(o) ? o : null;
+      } catch (e) {
+        return null;
+      }
+    };
+    const shipped = read(path.join(__dirname, 'data', 'overrides.json'));
+    const remote = read(path.join(DATA_DIR, 'cache', 'overrides.json'));
+    if (remote && (!shipped || (remote._revision || 0) >= (shipped._revision || 0))) return remote;
+    return shipped || {};
+  }
+
+  async refreshOverrides(force = false) {
+    const userPath = path.join(DATA_DIR, 'cache', 'overrides.json');
     try {
-      return JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'overrides.json'), 'utf8'));
-    } catch (e) {
-      return {};
+      if (!force && fs.existsSync(userPath) && Date.now() - fs.statSync(userPath).mtimeMs < CACHE_REFRESH_MS) return false;
+      const res = await fetch(OVERRIDES_URL, { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      if (!isValidOverrides(JSON.parse(text))) throw new Error('형식이 올바르지 않음');
+
+      const before = JSON.stringify(this.loadOverrides());
+      fs.mkdirSync(path.dirname(userPath), { recursive: true });
+      fs.writeFileSync(userPath, text, 'utf8');
+      if (JSON.stringify(this.loadOverrides()) === before) return false;
+
+      if (this.lastAugmentList) this.buildAugments(this.lastAugmentList);
+      if (this.lastItemList) this.buildItems(this.lastItemList);
+      console.log('[MetaManager] 증강 설명 최신본 반영');
+      return true;
+    } catch (err) {
+      console.warn(`[MetaManager] 증강 설명 갱신 실패 (${err.message}) → 기존 설명 사용`);
+      return false;
     }
   }
 
@@ -646,3 +701,4 @@ class MetaManager {
 
 module.exports = new MetaManager();
 module.exports.isArenaGame = isArenaGame;
+module.exports.sanitizeDescriptionHtml = sanitizeDescriptionHtml;

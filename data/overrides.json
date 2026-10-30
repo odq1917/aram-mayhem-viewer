@@ -4,6 +4,7 @@
     "augments 의 키는 증강 ID(숫자)입니다. name, rarity(kSilver/kGold/kPrismatic), description(일반 텍스트), styledDescription(HTML, 선택), iconUrl 중 필요한 것만 적으면 나머지는 기존 값을 씁니다.",
     "items 의 키는 아이템 ID입니다. name, description, iconUrl 을 적을 수 있습니다."
   ],
+  "_revision": 2026103101,
   "augments": {
     "154": {
       "name": "우르프의 챔피언",
