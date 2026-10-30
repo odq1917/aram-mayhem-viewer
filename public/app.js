@@ -479,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
         champion: meta.champions[p.championId] || fallbackChamp(p.championId),
         spells: (p.spellIds || []).map(id => meta.spells[id] || null),
         items: (p.itemIds || []).map(id => (id > 0 ? meta.items[id] || null : null)),
-        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(Boolean), p.champLevel)
+        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(a => a && !a.hidden), p.champLevel)
       }));
       // 게임 종료 화면에서 받은 '팀원 보호막' 값이 있으면 회복·보호 칸에 포함
       if (participants.some(p => p.ext?.totalDamageShieldedOnTeammates !== undefined)) {

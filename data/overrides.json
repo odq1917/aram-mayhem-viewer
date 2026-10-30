@@ -561,6 +561,10 @@
       "description": "치명타 피해량을 35%, 추가 공격력을 25% 얻습니다.\n\n공격 속도의 75%에 해당하는 수치가 치명타 피해량으로 전환됩니다. (1%의 공격 속도가 0.7%의 치명타 피해량으로 전환)",
       "styledDescription": "<span class=\"stat-crit\">치명타 피해량</span>을 35%, <span class=\"stat-ad\">추가 공격력</span>을 25% 얻습니다.<br><br><span class=\"stat-speed\">공격 속도</span>의 75%에 해당하는 수치가 <span class=\"stat-crit\">치명타 피해량</span>으로 전환됩니다. (1%의 공격 속도가 0.7%의 치명타 피해량으로 전환)"
     },
+    "3036": {
+      "description": "4초 이내에 적 챔피언에게 서로 다른 스킬 2개를 사용해 피해를 입히면 (최대 마나의 10%)의 마법 피해를 입히고 최대 마나를 25 얻습니다.\n\n[상세 효과]\n대상마다 4초의 재사용 대기시간이 적용됩니다.",
+      "styledDescription": "4초 이내에 적 챔피언에게 서로 다른 스킬 2개를 사용해 피해를 입히면 <span class=\"stat-ap\">(최대 마나의 10%)의 마법 피해</span>를 입히고 <span class=\"stat-mr\">최대 마나</span>를 25 얻습니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">대상마다 4초의 재사용 대기시간이 적용됩니다.</span>"
+    },
     "3049": {
       "name": "장갑 충격",
       "rarity": "kGold",
@@ -596,6 +600,14 @@
       "description": "소환사 주문이 죽음과 함께하는 춤으로 변경됩니다.\n\n죽음과 함께하는 춤: 5초 동안 불사 상태가 되고 전방으로 순간적으로 이동합니다.\n지속시간이 끝나기 전에 처치 관여를 달성하면 (250~1000 + 방어구 관통력의 1000% + 마법 관통력의 1000%)의 체력을 회복하고 원래 위치로 돌아가며, 이 소환사 주문의 재사용 대기시간이 20초 감소합니다. 그러지 못할 경우 사망합니다.",
       "styledDescription": "소환사 주문이 <b>죽음과 함께하는 춤</b>으로 변경됩니다.<br><br><b>죽음과 함께하는 춤:</b> 5초 동안 <span class=\"stat-special\">불사</span> 상태가 되고 전방으로 순간적으로 이동합니다.<br>지속시간이 끝나기 전에 <span class=\"stat-trigger\">처치 관여</span>를 달성하면 <span class=\"stat-hp\">(250~1000 + 방어구 관통력의 1000% + 마법 관통력의 1000%)의 체력</span>을 회복하고 원래 위치로 돌아가며, 이 소환사 주문의 재사용 대기시간이 20초 감소합니다. 그러지 못할 경우 <span class=\"stat-ad\">사망합니다.</span>"
     },
+    "3081": {
+      "description": "첫 번째 전설급 아이템이 운명의 무기가 됩니다. 피해를 입힌 챔피언이 3초 안에 죽으면 운명의 무기 능력치가 증가합니다.\n\n[상세 효과]\n운명의 무기는 판매할 수 없습니다.",
+      "styledDescription": "첫 번째 전설급 아이템이 <span class=\"stat-special\">운명의 무기</span>가 됩니다. 피해를 입힌 챔피언이 3초 안에 죽으면 <span class=\"stat-special\">운명의 무기</span> 능력치가 증가합니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\"><span class=\"stat-special\">운명의 무기</span>는 판매할 수 없습니다.</span>"
+    },
+    "3085": {
+      "description": "특정 스킬 사용 시 4초 동안 공격 속도를 60~120% (레벨에 따라) 얻습니다.",
+      "styledDescription": "특정 스킬 사용 시 4초 동안 <span class=\"stat-speed\">공격 속도</span>를 60~120% (레벨에 따라) 얻습니다."
+    },
     "3086": {
       "name": "벌이다!!!",
       "rarity": "kGold",
@@ -617,6 +629,14 @@
       "description": "기본 공격 및 스킬이 적 챔피언에게 5초 동안 중첩을 1회 적용하고 (5~30 + 추가 공격력의 35% + 주문력의 15%) + 중첩당 (1~6 + 추가 공격력의 7% + 주문력의 3%)의 마법 피해를 입힙니다.\n\n중첩이 5회 적용된 적에게 피해를 입히면 중첩을 소모해 (15% + 추가 공격 속도의 5% + 스킬 가속의 0.15%)의 잃은 체력 비례 마법 피해를 입히고 입힌 피해량의 67%만큼 체력을 회복합니다.",
       "styledDescription": "기본 공격 및 스킬이 적 챔피언에게 5초 동안 중첩을 1회 적용하고 <span class=\"stat-ap\">(5~30 + 추가 공격력의 35% + 주문력의 15%) + 중첩당 (1~6 + 추가 공격력의 7% + 주문력의 3%)의 마법 피해</span>를 입힙니다.<br><br>중첩이 5회 적용된 적에게 피해를 입히면 중첩을 소모해 <span class=\"stat-ap\">(15% + 추가 공격 속도의 5% + 스킬 가속의 0.15%)의 잃은 체력 비례 마법 피해</span>를 입히고 입힌 피해량의 67%만큼 <span class=\"stat-hp\">체력을 회복</span>합니다."
     },
+    "3123": {
+      "description": "궁극기에 치명타가 적용되어 45% 증가한 피해를 입힐 수 있습니다.\n치명타 확률을 25% 얻습니다.\n\n[상세 효과]\n다른 스킬 강화 증강과 달리 궁극기에만 적용됩니다.",
+      "styledDescription": "궁극기에 <span class=\"stat-crit\">치명타</span>가 적용되어 45% 증가한 피해를 입힐 수 있습니다.<br><span class=\"stat-crit\">치명타 확률</span>을 25% 얻습니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">다른 스킬 강화 증강과 달리 궁극기에만 적용됩니다.</span>"
+    },
+    "3131": {
+      "description": "잃은 체력 1%당 공격 속도를 2%, 생명력 흡수를 0.35% 얻습니다.",
+      "styledDescription": "잃은 <span class=\"stat-hp\">체력</span> 1%당 <span class=\"stat-speed\">공격 속도</span>를 2%, <span class=\"stat-vamp\">생명력 흡수</span>를 0.35% 얻습니다."
+    },
     "3132": {
       "name": "왕관의 무게",
       "rarity": "kGold",
@@ -630,6 +650,27 @@
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/enchantedbuttery_small.png",
       "description": "아군 챔피언의 체력을 회복시키거나 보호막을 씌우면 주변에 나비가 모입니다.\n\n나비를 7마리 모은 후 적 챔피언에게 피해를 입히면 모든 나비가 날아가 각각 (50~100 + 추가 체력의 1% + 회복 및 보호막 효과의 30000% + 주문력의 10%)의 마법 피해를 입히며, 연달아 적중하면 75%의 피해를 입힙니다.",
       "styledDescription": "아군 챔피언의 <span class=\"stat-hp\">체력을 회복</span>시키거나 <span class=\"stat-mr\">보호막을 씌우면</span> 주변에 <span class=\"stat-special\">나비</span>가 모입니다.<br><br><span class=\"stat-special\">나비</span>를 7마리 모은 후 적 챔피언에게 피해를 입히면 모든 나비가 날아가 각각 <span class=\"stat-ap\">(50~100 + 추가 체력의 1% + 회복 및 보호막 효과의 30000% + 주문력의 10%)의 마법 피해</span>를 입히며, 연달아 적중하면 75%의 피해를 입힙니다."
+    },
+    "3170": {
+      "description": "Q 스킬을 강화합니다.\n\n[상세 효과]\n강화 스킬은 스킬 가속 20 증가, 피해량 10% 증가, 체력 회복량 및 보호막 흡수량 10% 증가 효과를 얻습니다.\n펜타킬 테마에서 시작 증강과 함께 주어지는 스킬 강화 증강입니다.",
+      "styledDescription": "Q 스킬을 <span class=\"stat-special\">강화</span>합니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\"><span class=\"stat-special\">강화</span> 스킬은 <span class=\"stat-speed\">스킬 가속</span> 20 증가, 피해량 10% 증가, <span class=\"stat-hp\">체력 회복량</span> 및 <span class=\"stat-hp\">보호막 흡수량</span> 10% 증가 효과를 얻습니다.<br>펜타킬 테마에서 시작 증강과 함께 주어지는 스킬 강화 증강입니다.</span>"
+    },
+    "3171": {
+      "description": "W 스킬을 강화합니다.\n\n[상세 효과]\n강화 스킬은 스킬 가속 20 증가, 피해량 10% 증가, 체력 회복량 및 보호막 흡수량 10% 증가 효과를 얻습니다.\n펜타킬 테마에서 시작 증강과 함께 주어지는 스킬 강화 증강입니다.",
+      "styledDescription": "W 스킬을 <span class=\"stat-special\">강화</span>합니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\"><span class=\"stat-special\">강화</span> 스킬은 <span class=\"stat-speed\">스킬 가속</span> 20 증가, 피해량 10% 증가, <span class=\"stat-hp\">체력 회복량</span> 및 <span class=\"stat-hp\">보호막 흡수량</span> 10% 증가 효과를 얻습니다.<br>펜타킬 테마에서 시작 증강과 함께 주어지는 스킬 강화 증강입니다.</span>"
+    },
+    "3172": {
+      "description": "E 스킬을 강화합니다.\n\n[상세 효과]\n강화 스킬은 스킬 가속 20 증가, 피해량 10% 증가, 체력 회복량 및 보호막 흡수량 10% 증가 효과를 얻습니다.\n펜타킬 테마에서 시작 증강과 함께 주어지는 스킬 강화 증강입니다.",
+      "styledDescription": "E 스킬을 <span class=\"stat-special\">강화</span>합니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\"><span class=\"stat-special\">강화</span> 스킬은 <span class=\"stat-speed\">스킬 가속</span> 20 증가, 피해량 10% 증가, <span class=\"stat-hp\">체력 회복량</span> 및 <span class=\"stat-hp\">보호막 흡수량</span> 10% 증가 효과를 얻습니다.<br>펜타킬 테마에서 시작 증강과 함께 주어지는 스킬 강화 증강입니다.</span>"
+    },
+    "3173": {
+      "description": "R 스킬을 강화합니다.\n\n[상세 효과]\n강화 스킬은 스킬 가속 20 증가, 피해량 10% 증가, 체력 회복량 및 보호막 흡수량 10% 증가 효과를 얻습니다.\n펜타킬 테마에서 시작 증강과 함께 주어지는 스킬 강화 증강입니다.",
+      "styledDescription": "R 스킬을 <span class=\"stat-special\">강화</span>합니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\"><span class=\"stat-special\">강화</span> 스킬은 <span class=\"stat-speed\">스킬 가속</span> 20 증가, 피해량 10% 증가, <span class=\"stat-hp\">체력 회복량</span> 및 <span class=\"stat-hp\">보호막 흡수량</span> 10% 증가 효과를 얻습니다.<br>펜타킬 테마에서 시작 증강과 함께 주어지는 스킬 강화 증강입니다.</span>"
+    },
+    "3176": {
+      "name": "펜타킬 테마 표시",
+      "hidden": true,
+      "description": "펜타킬 테마 시작 시 지급되는 표시용 증강입니다. 전적에는 표시하지 않습니다."
     }
   },
   "items": {

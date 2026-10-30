@@ -231,10 +231,17 @@ class MetaManager {
         rarity,
         rarityLabel: RARITY_LABELS[rarity] || '실버',
         rarityCode: RARITY_CODES[rarity] || 'silver',
-        iconUrl: o.iconUrl || base.iconUrl || DEFAULT_AUG_ICON
+        iconUrl: o.iconUrl || base.iconUrl || DEFAULT_AUG_ICON,
+        // 테마 표시용 등 실제 효과가 없는 증강은 전적·도감에서 숨김
+        ...(o.hidden ? { hidden: true } : {})
       };
       this.augments[id] = merged;
-      this.dexAugments[merged.name] = merged;
+      if (merged.hidden) {
+        delete this.dexAugments[merged.name];
+        delete this.dexAugments[base.name];
+      } else {
+        this.dexAugments[merged.name] = merged;
+      }
     }
   }
 
@@ -477,7 +484,7 @@ class MetaManager {
           augmentIds.push(augId);
         }
       }
-      const augments = augmentIds.map(id => this.getAugment(id)).filter(Boolean);
+      const augments = augmentIds.map(id => this.getAugment(id)).filter(a => a && !a.hidden);
 
       // 아이템 추출 (item0 ~ item6)
       const items = [];
