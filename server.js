@@ -59,6 +59,17 @@ app.use((req, res, next) => {
   if (origin && !ALLOWED_ORIGINS.has(origin.toLowerCase())) {
     return res.status(403).json({ error: 'Forbidden origin' });
   }
+  // API는 이 대시보드에서 보낸 요청만 허용 (외부 사이트의 <img>·<script> 등 Origin 없는 요청 차단)
+  // /api/ping 은 북마크(open.html, file://)가 서버 실행 여부 확인에 쓰므로 제외
+  if (req.path.startsWith('/api/') && req.path !== '/api/ping') {
+    const site = req.headers['sec-fetch-site'];
+    if (site && site !== 'same-origin' && site !== 'none') {
+      return res.status(403).json({ error: 'Cross-site request blocked' });
+    }
+    if (req.method !== 'GET' && req.method !== 'HEAD' && !origin) {
+      return res.status(403).json({ error: 'Missing origin' });
+    }
+  }
   next();
 });
 

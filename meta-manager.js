@@ -52,6 +52,21 @@ const RARITY_CODES = { kSilver: 'silver', kGold: 'gold', kPrismatic: 'prismatic'
 const DEFAULT_AUG_ICON = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg';
 const CACHE_REFRESH_MS = 3 * 60 * 60 * 1000; // 게임 데이터(증강·아이템 등) 3시간마다 다시 받기 (패치 당일 빠르게 반영)
 
+// 설명 HTML은 증강 툴팁에 쓰는 태그(span/b/i/br)와 class·style 속성만 남기고 나머지는 글자로 바꿈
+function sanitizeDescriptionHtml(html) {
+  return String(html || '').replace(/<[^>]*>?/g, tag => {
+    const m = tag.match(/^<(\/?)(span|b|i|br)((?:\s+(?:class="[\w\s-]*"|style="[^"<>]*"))*)\s*\/?>$/i);
+    if (!m) return tag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const attrs = m[3].replace(/\s*style="[^"]*"/gi, s => (/url\s*\(|expression|javascript:/i.test(s) ? '' : s));
+    return `<${m[1]}${m[2].toLowerCase()}${attrs}>`;
+  });
+}
+
+// 아이콘은 CommunityDragon / Data Dragon 주소만 허용 (따옴표 등으로 속성을 벗어나지 못하게)
+function safeIconUrl(url, fallback = '') {
+  return /^https:\/\/(raw\.communitydragon\.org|ddragon\.leagueoflegends\.com)\/[^"'<>\s`]*$/.test(String(url || '')) ? url : fallback;
+}
+
 class MetaManager {
   constructor() {
     this.cacheDir = path.join(__dirname, 'cache');
@@ -243,6 +258,15 @@ class MetaManager {
         this.dexAugments[merged.name] = merged;
       }
     }
+
+    // 외부(CommunityDragon·사전·overrides)에서 온 설명은 화면에 HTML 로 넣으므로 툴팁용 태그만 남김
+    for (const map of [this.augments, this.dexAugments]) {
+      for (const aug of Object.values(map)) {
+        aug.styledDescription = sanitizeDescriptionHtml(aug.styledDescription);
+        aug.description = sanitizeDescriptionHtml(aug.description);
+        aug.iconUrl = safeIconUrl(aug.iconUrl, DEFAULT_AUG_ICON);
+      }
+    }
   }
 
   // 2. 챔피언 목록 로드
@@ -425,13 +449,13 @@ class MetaManager {
         for (const id of p.spellIds || []) {
           if (id && !out.spells[id]) {
             const { id: sid, name, iconUrl } = this.getSpell(id);
-            out.spells[id] = { id: sid, name, iconUrl };
+            out.spells[id] = { id: sid, name, iconUrl: safeIconUrl(iconUrl) };
           }
         }
         for (const id of p.itemIds || []) {
           if (id > 0 && !out.items[id]) {
             const { id: iid, name, iconUrl } = this.getItem(id);
-            out.items[id] = { id: iid, name, iconUrl };
+            out.items[id] = { id: iid, name, iconUrl: safeIconUrl(iconUrl) };
           }
         }
         for (const id of p.augmentIds || []) {
@@ -646,3 +670,5 @@ class MetaManager {
 
 module.exports = new MetaManager();
 module.exports.isArenaGame = isArenaGame;
+module.exports.sanitizeDescriptionHtml = sanitizeDescriptionHtml;
+module.exports.safeIconUrl = safeIconUrl;

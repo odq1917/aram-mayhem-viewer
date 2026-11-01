@@ -1022,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="champ-meta">
             <span class="champ-name">${escapeHtml(champ.name || '챔피언')}</span>
             <div class="spells-row">
-              ${(p.spells || []).map(s => s?.iconUrl ? `<img src="${s.iconUrl}" class="spell-icon" loading="lazy" title="${escapeHtml(s.name)}">` : '').join('')}
+              ${(p.spells || []).map(s => s?.iconUrl ? `<img src="${escapeHtml(s.iconUrl)}" class="spell-icon" loading="lazy" title="${escapeHtml(s.name)}">` : '').join('')}
             </div>
           </div>
         </div>
@@ -1138,9 +1138,9 @@ document.addEventListener('DOMContentLoaded', () => {
                  data-aug-name="${escapeHtml(aug.name)}"
                  data-aug-desc="${encodeURIComponent(aug.styledDescription || aug.description || '')}"
                  data-aug-rarity="${aug.rarityLabel}"${augSourceAttrs(aug)}
-                 data-aug-icon="${aug.iconUrl}">
+                 data-aug-icon="${escapeHtml(aug.iconUrl)}">
               ${augSourceMark(aug)}
-              <img src="${aug.iconUrl}" alt="${escapeHtml(aug.name)}" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+              <img src="${escapeHtml(aug.iconUrl)}" alt="${escapeHtml(aug.name)}" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
             </div>
             <span class="aug-name-label" title="${escapeHtml(aug.name)}">${labelHtml}</span>
           </div>
@@ -1164,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (item && item.iconUrl) {
         html += `
           <div class="item-slot" title="${escapeHtml(item.name)}">
-            <img src="${item.iconUrl}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">
+            <img src="${escapeHtml(item.iconUrl)}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">
           </div>
         `;
       } else {
@@ -1194,15 +1194,15 @@ document.addEventListener('DOMContentLoaded', () => {
              data-aug-name="${escapeHtml(aug.name)}"
              data-aug-desc="${encodeURIComponent(aug.styledDescription || aug.description || '')}"
              data-aug-rarity="${aug.rarityLabel}"${augSourceAttrs(aug)}
-             data-aug-icon="${aug.iconUrl}">
+             data-aug-icon="${escapeHtml(aug.iconUrl)}">
           ${augSourceMark(aug)}
-          <img src="${aug.iconUrl}" alt="${escapeHtml(aug.name)}" loading="lazy">
+          <img src="${escapeHtml(aug.iconUrl)}" alt="${escapeHtml(aug.name)}" loading="lazy">
         </div>
       `).join('');
 
       const itemsMini = (p.items || []).slice(0, 6).map(it => `
         <div class="item-mini-slot" title="${escapeHtml(it?.name)}">
-          ${it?.iconUrl ? `<img src="${it.iconUrl}" loading="lazy">` : ''}
+          ${it?.iconUrl ? `<img src="${escapeHtml(it.iconUrl)}" loading="lazy">` : ''}
         </div>
       `).join('');
 
@@ -1429,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = `dex-card ${aug.rarityCode}`;
       card.innerHTML = `
-        <img src="${aug.iconUrl}" alt="${escapeHtml(aug.name)}" class="dex-card-icon" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+        <img src="${escapeHtml(aug.iconUrl)}" alt="${escapeHtml(aug.name)}" class="dex-card-icon" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
         <div class="dex-card-body">
           <div class="dex-card-title-row">
             <span class="dex-card-name">${escapeHtml(aug.name)}</span>
@@ -1815,7 +1815,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const list = [...augs.values()].sort((x, y) => y.picks - x.picks || y.wins / y.picks - x.wins / x.picks);
       rows = `<div class="st-row st-head"><span>증강체</span><span>선택</span><span>승률</span></div>` + list.map(s => `
         <div class="st-row st-clickable" data-aug-name="${escapeHtml(s.aug.name)}" title="클릭하면 이 증강을 쓴 경기만 보기">
-          <span class="st-name"><img src="${s.aug.iconUrl}" class="st-icon ${s.aug.rarityCode}" loading="lazy" alt="">${escapeHtml(s.aug.name)}</span>
+          <span class="st-name"><img src="${escapeHtml(s.aug.iconUrl)}" class="st-icon ${s.aug.rarityCode}" loading="lazy" alt="">${escapeHtml(s.aug.name)}</span>
           <span>${s.picks}회</span>
           <span>${winRateCell(s.wins, s.picks)}</span>
         </div>`).join('');

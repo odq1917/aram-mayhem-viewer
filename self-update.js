@@ -14,6 +14,7 @@ const UPDATE_DIR = path.join(DATA_DIR, 'update');
 const PENDING_FILE = path.join(UPDATE_DIR, 'pending.json');
 const BACKUP_DIR = path.join(UPDATE_DIR, 'backup');
 const ASSET_RE = /^ARAM-Mayhem-Viewer-Portable-v[\d.]+\.zip$/;
+const DOWNLOAD_PREFIX = 'https://github.com/odq1917/aram-mayhem-viewer/releases/download/';
 // 덮어쓰지 않는 최상위 항목 (실행 중인 node.exe, 개발용 폴더, 로그)
 const SKIP_TOP = new Set(['runtime', '.git', 'run_log.txt']);
 
@@ -85,14 +86,16 @@ function stage(info) {
 async function doStage(info) {
   const asset = (info.assets || []).find(a => ASSET_RE.test(a.name));
   if (!asset) throw new Error('릴리스에 Portable zip 이 없음');
+  if (!String(asset.url || '').startsWith(DOWNLOAD_PREFIX)) throw new Error('허용되지 않은 다운로드 경로');
+  const [algo, expected] = String(asset.digest || '').split(':');
+  if (algo !== 'sha256' || !/^[0-9a-f]{64}$/i.test(expected || '')) throw new Error('릴리스 파일에 SHA-256 값이 없음');
 
   console.log(`[업데이트] v${info.latest} 내려받는 중...`);
   const res = await fetch(asset.url, { signal: AbortSignal.timeout(5 * 60 * 1000) });
   if (!res.ok) throw new Error(`다운로드 HTTP ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer());
   if (asset.size && buf.length !== asset.size) throw new Error('다운로드 크기가 다름');
-  const [algo, expected] = String(asset.digest || '').split(':');
-  if (algo === 'sha256' && crypto.createHash('sha256').update(buf).digest('hex') !== expected) {
+  if (crypto.createHash('sha256').update(buf).digest('hex') !== expected.toLowerCase()) {
     throw new Error('파일 검증(SHA-256) 실패');
   }
 
