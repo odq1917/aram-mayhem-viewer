@@ -295,6 +295,10 @@
       "description": "눈덩이의 스킬 가속이 50 증가하고 눈덩이 대신 핀볼을 던집니다. 핀볼은 100~500 (레벨에 따라)의 추가 고정 피해를 입히고 지형에 튕깁니다. 튕길 때마다 남은 이동 거리가 초기화되고 크기가 25%, 피해량이 20% 증가하며 표식의 남은 재사용 대기시간이 30% 감소합니다.\n최대 4회 튕겨 크기는 최대 100%, 피해량은 최대 80% 증가합니다.\n눈덩이를 보유하지 않은 경우 눈덩이를 얻습니다.",
       "styledDescription": "눈덩이의 <span class=\"stat-speed\">스킬 가속</span>이 50 증가하고 눈덩이 대신 핀볼을 던집니다. 핀볼은 100~500 (레벨에 따라)의 추가 <span class=\"stat-true\">고정 피해</span>를 입히고 지형에 튕깁니다. 튕길 때마다 남은 이동 거리가 초기화되고 크기가 25%, <span class=\"stat-ad\">피해량</span>이 20% 증가하며 표식의 남은 재사용 대기시간이 30% 감소합니다.<br>최대 4회 튕겨 크기는 최대 100%, <span class=\"stat-ad\">피해량</span>은 최대 80% 증가합니다.<br>눈덩이를 보유하지 않은 경우 눈덩이를 얻습니다."
     },
+    "1361": {
+      "description": "즉시: 바미의 불씨를 획득합니다. 이제 불사르기 아이템을 2개 구매할 수 있습니다.\n조건: 태양불꽃 방패와 공허한 광휘를 보유해야 합니다.\n보상: 두 아이템이 공허의 불길로 합쳐집니다.\n\n[상세 효과]\n공허의 불길 (6000골드)\n체력 1000 · 방어력 100 · 마법 저항력 80 · 스킬 가속 25 · 기본 체력 재생 200%\n불사르기: 피해를 받거나 입히면 주변 적들에게 화상 효과를 적용해 5초 동안 매초 20 (+추가 체력의 3.5%)의 마법 피해를 입힙니다.\n황폐: 적을 처치하면 주변에 20 (+추가 체력의 2%)의 마법 피해를 입힙니다.\n미니언과 몬스터가 대상인 경우 불사르기 피해량이 50% 증가합니다.",
+      "styledDescription": "<span class=\"stat-gold\">즉시:</span> 바미의 불씨를 획득합니다. 이제 불사르기 아이템을 2개 구매할 수 있습니다.<br><span class=\"stat-gold\">조건:</span> 태양불꽃 방패와 공허한 광휘를 보유해야 합니다.<br><span class=\"stat-gold\">보상:</span> 두 아이템이 공허의 불길로 합쳐집니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\"><span class=\"stat-special\">공허의 불길</span> (6000골드)<br><span class=\"stat-hp\">체력</span> 1000 · <span class=\"stat-armor\">방어력</span> 100 · <span class=\"stat-mr\">마법 저항력</span> 80 · <span class=\"stat-speed\">스킬 가속</span> 25 · <span class=\"stat-hp\">기본 체력 재생</span> 200%<br>불사르기: 피해를 받거나 입히면 주변 적들에게 화상 효과를 적용해 5초 동안 매초 20 <span class=\"stat-hp\">(+추가 체력의 3.5%)</span>의 <span class=\"stat-ap\">마법 피해</span>를 입힙니다.<br>황폐: 적을 처치하면 주변에 20 <span class=\"stat-hp\">(+추가 체력의 2%)</span>의 <span class=\"stat-ap\">마법 피해</span>를 입힙니다.<br>미니언과 몬스터가 대상인 경우 불사르기 피해량이 50% 증가합니다.</span>"
+    },
     "1373": {
       "description": "처치 관여 시 중첩을 얻으며 무한히 중첩됩니다. 중첩당 8의 스킬 가속, 1%의 이동 속도를 얻고 크기가 4% 작아집니다. 사망 시 65%의 중첩을 잃습니다.\n\n[상세 효과]\n크기 감소는 최대 80% (20중첩)까지입니다.",
       "styledDescription": "<span class=\"stat-trigger\">처치 관여 시</span> 중첩을 얻으며 무한히 중첩됩니다. 중첩당 8의 <span class=\"stat-speed\">스킬 가속</span>, 1%의 <span class=\"stat-speed\">이동 속도</span>를 얻고 크기가 4% 작아집니다. 사망 시 65%의 중첩을 잃습니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">크기 감소는 최대 80% (20중첩)까지입니다.</span>"
@@ -554,6 +558,10 @@
       "description": "소환사 주문이 떴다, 징크스!로 변경됩니다.\n\n떴다, 징크스!: 적 챔피언, 구조물 또는 지형에 부딪히면 폭발하는 로켓에 올라탑니다. 로켓은 이동한 거리에 따라 대상 및 주변 적에게 (20~80 + 추가 공격력의 12% + 주문력의 8%) + 잃은 체력의 3% ~ (160~640 + 추가 공격력의 96% + 주문력의 64%) + 잃은 체력의 24%에 해당하는 물리 피해를 입힙니다.\n\n폭발 반경은 로켓의 이동 거리에 따라 증가합니다. 로켓에 탑승한 동안에는 무적 및 대상 지정 불가 상태가 됩니다.",
       "styledDescription": "소환사 주문이 <b>떴다, 징크스!</b>로 변경됩니다.<br><br><b>떴다, 징크스!:</b> 적 챔피언, 구조물 또는 지형에 부딪히면 폭발하는 로켓에 올라탑니다. 로켓은 이동한 거리에 따라 대상 및 주변 적에게 <span class=\"stat-ad\">(20~80 + 추가 공격력의 12% + 주문력의 8%) + 잃은 체력의 3%</span> ~ <span class=\"stat-ad\">(160~640 + 추가 공격력의 96% + 주문력의 64%) + 잃은 체력의 24%에 해당하는 물리 피해</span>를 입힙니다.<br><br>폭발 반경은 로켓의 이동 거리에 따라 증가합니다. 로켓에 탑승한 동안에는 <span class=\"stat-special\">무적</span> 및 <span class=\"stat-special\">대상 지정 불가</span> 상태가 됩니다."
     },
+    "3016": {
+      "description": "적 챔피언에게 4초 이내에 연속해서 3회 기본 공격할 때마다 중첩을 얻고 대상 최대 체력의 6% (+중첩당 10)의 고정 피해를 입힙니다.",
+      "styledDescription": "적 챔피언에게 4초 이내에 연속해서 3회 기본 공격할 때마다 중첩을 얻고 대상 <span class=\"stat-hp\">최대 체력</span>의 6% (+중첩당 10)의 <span class=\"stat-true\">고정 피해</span>를 입힙니다."
+    },
     "3018": {
       "name": "묵직한 한 방",
       "rarity": "kPrismatic",
@@ -565,12 +573,28 @@
       "description": "4초 이내에 적 챔피언에게 서로 다른 스킬 2개를 사용해 피해를 입히면 (최대 마나의 10%)의 마법 피해를 입히고 최대 마나를 25 얻습니다.\n\n[상세 효과]\n대상마다 4초의 재사용 대기시간이 적용됩니다.",
       "styledDescription": "4초 이내에 적 챔피언에게 서로 다른 스킬 2개를 사용해 피해를 입히면 <span class=\"stat-ap\">(최대 마나의 10%)의 마법 피해</span>를 입히고 <span class=\"stat-mr\">최대 마나</span>를 25 얻습니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">대상마다 4초의 재사용 대기시간이 적용됩니다.</span>"
     },
+    "3048": {
+      "description": "스킬 사용 후 다음 기본 공격이 가장 가까운 적에게 튕겨 기존 피해량의 50~100% (레벨에 따라)만큼 피해를 입힙니다.\n퀘스트: 기본 공격을 적 챔피언에게 튕기세요.\n보상: 퀘스트 레벨당 공격력이 30 증가하고 추가로 1회 더 튕깁니다.\n\n[상세 효과]\n퀘스트 필요 횟수: 1단계 10회 → 2단계 30회 → 3단계 123회",
+      "styledDescription": "스킬 사용 후 다음 기본 공격이 가장 가까운 적에게 튕겨 기존 피해량의 50~100% (레벨에 따라)만큼 피해를 입힙니다.<br><span class=\"stat-gold\">퀘스트:</span> 기본 공격을 적 챔피언에게 튕기세요.<br><span class=\"stat-gold\">보상:</span> 퀘스트 레벨당 <span class=\"stat-ad\">공격력</span>이 30 증가하고 추가로 1회 더 튕깁니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">퀘스트 필요 횟수: 1단계 10회 → 2단계 30회 → 3단계 123회</span>"
+    },
     "3049": {
       "name": "장갑 충격",
       "rarity": "kGold",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/armoredimpact_small.png",
-      "description": "스킬 사용 후 다음 기본 공격 시 주변 적에게 (추가 방어력의 250% + 50~125)의 추가 물리 피해를 입힙니다.",
-      "styledDescription": "스킬 사용 후 다음 기본 공격 시 주변 적에게 <span class=\"stat-armor\">(추가 방어력의 250% + 50~125)</span>의 <span class=\"stat-ad\">추가 물리 피해</span>를 입힙니다."
+      "description": "스킬 사용 후 다음 기본 공격 시 주변 적에게 25~125 (+추가 방어력의 220%)의 추가 물리 피해를 입힙니다.",
+      "styledDescription": "스킬 사용 후 다음 기본 공격 시 주변 적에게 25~125 <span class=\"stat-armor\">(+추가 방어력의 220%)</span>의 추가 <span class=\"stat-ad\">물리 피해</span>를 입힙니다."
+    },
+    "3051": {
+      "description": "사용한 마나의 200~450% (레벨에 따라)만큼 일시적으로 보호막을 얻습니다.",
+      "styledDescription": "사용한 <span class=\"stat-mr\">마나</span>의 200~450% (레벨에 따라)만큼 일시적으로 <span class=\"stat-hp\">보호막</span>을 얻습니다."
+    },
+    "3052": {
+      "description": "최대 공격 사거리의 75%보다 먼 거리에서 기본 공격 적중 시 추가로 (추가 공격력의 15%) (+주문력의 20%)의 물리 피해를 입힙니다.",
+      "styledDescription": "최대 공격 사거리의 75%보다 먼 거리에서 기본 공격 <span class=\"stat-hit\">적중 시</span> 추가로 <span class=\"stat-ad\">(추가 공격력의 15%)</span> <span class=\"stat-ap\">(+주문력의 20%)</span>의 <span class=\"stat-ad\">물리 피해</span>를 입힙니다."
+    },
+    "3053": {
+      "description": "특정 스킬 사용 시 해당 스킬 지속시간 동안 300~750 (레벨에 따라)의 추가 체력을 얻고 주변 적을 50%만큼 둔화시킵니다.\n처치 관여 시 얻는 체력이 영구히 15~30 (레벨에 따라) 증가하며, 둔화 범위가 늘어납니다.\n\n[상세 효과]\n해당 스킬 사용 중 달성한 처치 관여는 세 배로 계산됩니다.",
+      "styledDescription": "특정 스킬 사용 시 해당 스킬 지속시간 동안 300~750 (레벨에 따라)의 <span class=\"stat-hp\">추가 체력</span>을 얻고 주변 적을 50%만큼 <span class=\"stat-cc\">둔화</span>시킵니다.<br><span class=\"stat-trigger\">처치 관여 시</span> 얻는 <span class=\"stat-hp\">체력</span>이 영구히 15~30 (레벨에 따라) 증가하며, <span class=\"stat-cc\">둔화</span> 범위가 늘어납니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">해당 스킬 사용 중 달성한 처치 관여는 세 배로 계산됩니다.</span>"
     },
     "3055": {
       "name": "궁극의 반복",
@@ -578,6 +602,26 @@
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/zealot_large.png",
       "description": "궁극기 가속이 50 증가합니다.",
       "styledDescription": "<span class=\"stat-speed\">궁극기 가속</span>이 50 증가합니다."
+    },
+    "3058": {
+      "description": "공격력이 공격 속도로 전환됩니다. (공격력 1당 공격 속도 1.8%)\n기본 공격 적중 시 5~50 (레벨에 따라)의 추가 마법 피해를 입힙니다.",
+      "styledDescription": "<span class=\"stat-ad\">공격력</span>이 <span class=\"stat-speed\">공격 속도</span>로 전환됩니다. (공격력 1당 공격 속도 1.8%)<br>기본 공격 <span class=\"stat-hit\">적중 시</span> 5~50 (레벨에 따라)의 추가 <span class=\"stat-ap\">마법 피해</span>를 입힙니다."
+    },
+    "3059": {
+      "description": "아이템으로 얻는 마나가 주문력으로 전환됩니다. (마나 10당 주문력 1)\n총 주문력이 15% 증가합니다.",
+      "styledDescription": "아이템으로 얻는 <span class=\"stat-mr\">마나</span>가 <span class=\"stat-ap\">주문력</span>으로 전환됩니다. (마나 10당 주문력 1)<br>총 <span class=\"stat-ap\">주문력</span>이 15% 증가합니다."
+    },
+    "3060": {
+      "description": "특정 스킬의 피해량이 스킬 가속 100당 75% 증가하지만, 더 이상 스킬 가속 효과를 받지 않습니다.",
+      "styledDescription": "특정 스킬의 피해량이 <span class=\"stat-speed\">스킬 가속</span> 100당 75% 증가하지만, 더 이상 <span class=\"stat-speed\">스킬 가속</span> 효과를 받지 않습니다."
+    },
+    "3063": {
+      "description": "추가 체력이 물리 관통력으로 전환됩니다. (체력 100당 물리 관통력 5)\n물리 관통력을 10~25 (레벨에 따라) 얻습니다.",
+      "styledDescription": "<span class=\"stat-hp\">추가 체력</span>이 <span class=\"stat-crit\">물리 관통력</span>으로 전환됩니다. (체력 100당 물리 관통력 5)<br><span class=\"stat-crit\">물리 관통력</span>을 10~25 (레벨에 따라) 얻습니다."
+    },
+    "3071": {
+      "description": "소환사 주문이 트럼펫 폭발로 변경됩니다.\n충전 시작: 최대 1.5초 동안 거대한 트럼펫에 힘을 모읍니다.\n발사: 트럼펫을 불어 적을 뒤로 밀어내고 충전 시간에 비례해 120~140 (레벨에 따라) (+주문력의 50%) (+추가 공격력의 70%) ~ 200~600 (레벨에 따라) (+주문력의 80%) (+추가 공격력의 115%)의 마법 피해를 입힙니다.\n\n[상세 효과]\n최소 충전 시간: 0.25초\n재사용 대기시간: 50초",
+      "styledDescription": "소환사 주문이 트럼펫 폭발로 변경됩니다.<br>충전 시작: 최대 1.5초 동안 거대한 트럼펫에 힘을 모읍니다.<br>발사: 트럼펫을 불어 적을 <span class=\"stat-cc\">뒤로 밀어내고</span> 충전 시간에 비례해 120~140 (레벨에 따라) <span class=\"stat-ap\">(+주문력의 50%)</span> <span class=\"stat-ad\">(+추가 공격력의 70%)</span> ~ 200~600 (레벨에 따라) <span class=\"stat-ap\">(+주문력의 80%)</span> <span class=\"stat-ad\">(+추가 공격력의 115%)</span>의 <span class=\"stat-ap\">마법 피해</span>를 입힙니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">최소 충전 시간: 0.25초<br>재사용 대기시간: 50초</span>"
     },
     "3075": {
       "name": "고반동",
@@ -612,8 +656,8 @@
       "name": "벌이다!!!",
       "rarity": "kGold",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/bees_small.png",
-      "description": "15~10초마다 적 챔피언에게 적중하는 다음 스킬이 대상에게 벌집을 던집니다. 충돌 시 벌집이 폭발하며 주변 모든 적 챔피언에게 벌이 달려들어 2초 동안 20%만큼 둔화시키고 (75~200 + 추가 공격력의 150% + 주문력의 70%)의 마법 피해를 입힙니다.\n\n벌은 적중 시 효과를 40%의 효율로 적용합니다.",
-      "styledDescription": "15~10초마다 적 챔피언에게 적중하는 다음 스킬이 대상에게 벌집을 던집니다. 충돌 시 벌집이 폭발하며 주변 모든 적 챔피언에게 <span class=\"stat-special\">벌</span>이 달려들어 2초 동안 20%만큼 <span class=\"stat-cc\">둔화</span>시키고 <span class=\"stat-ap\">(75~200 + 추가 공격력의 150% + 주문력의 70%)의 마법 피해</span>를 입힙니다.<br><br><span class=\"stat-special\">벌</span>은 <span class=\"stat-hit\">적중 시 효과</span>를 40%의 효율로 적용합니다."
+      "description": "15~10초마다 적 챔피언에게 적중하는 다음 스킬이 대상에게 벌집을 던집니다. 충돌 시 벌집이 폭발하며 주변 모든 적 챔피언에게 벌이 달려들어 2초 동안 20%만큼 둔화시키고 75~140 (+추가 공격력의 150%) (+주문력의 70%)의 마법 피해를 입힙니다.\n\n[상세 효과]\n벌은 적중 시 효과를 40%의 효율로 적용합니다. 벌집이 날아가는 시간은 1.1초입니다.",
+      "styledDescription": "15~10초마다 적 챔피언에게 적중하는 다음 스킬이 대상에게 벌집을 던집니다. 충돌 시 벌집이 폭발하며 주변 모든 적 챔피언에게 벌이 달려들어 2초 동안 20%만큼 <span class=\"stat-cc\">둔화</span>시키고 75~140 <span class=\"stat-ad\">(+추가 공격력의 150%)</span> <span class=\"stat-ap\">(+주문력의 70%)</span>의 <span class=\"stat-ap\">마법 피해</span>를 입힙니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">벌은 <span class=\"stat-hit\">적중 시 효과</span>를 40%의 효율로 적용합니다. 벌집이 날아가는 시간은 1.1초입니다.</span>"
     },
     "3088": {
       "name": "핏빛 코발트",
@@ -622,12 +666,20 @@
       "description": "특정 스킬로 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 (100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해를 입히고 해당 스킬 재사용 대기시간이 65% 감소합니다.",
       "styledDescription": "특정 스킬로 피해를 입은 적 챔피언에게 4초 동안 표식이 남습니다. 표식이 있는 적을 기본 공격하면 표식을 소모해 <span class=\"stat-ap\">(100~250 + 추가 공격력의 70% + 주문력의 35%)의 마법 피해</span>를 입히고 해당 스킬 재사용 대기시간이 65% 감소합니다."
     },
+    "3094": {
+      "description": "주문력을 30 (+추가 체력의 4%) 얻습니다.",
+      "styledDescription": "<span class=\"stat-ap\">주문력</span>을 30 <span class=\"stat-hp\">(+추가 체력의 4%)</span> 얻습니다."
+    },
     "3116": {
       "name": "전부 다 무너뜨려",
       "rarity": "kGold",
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/takeemdowndowndown_small.png",
       "description": "기본 공격 및 스킬이 적 챔피언에게 5초 동안 중첩을 1회 적용하고 (5~30 + 추가 공격력의 35% + 주문력의 15%) + 중첩당 (1~6 + 추가 공격력의 7% + 주문력의 3%)의 마법 피해를 입힙니다.\n\n중첩이 5회 적용된 적에게 피해를 입히면 중첩을 소모해 (15% + 추가 공격 속도의 5% + 스킬 가속의 0.15%)의 잃은 체력 비례 마법 피해를 입히고 입힌 피해량의 67%만큼 체력을 회복합니다.",
       "styledDescription": "기본 공격 및 스킬이 적 챔피언에게 5초 동안 중첩을 1회 적용하고 <span class=\"stat-ap\">(5~30 + 추가 공격력의 35% + 주문력의 15%) + 중첩당 (1~6 + 추가 공격력의 7% + 주문력의 3%)의 마법 피해</span>를 입힙니다.<br><br>중첩이 5회 적용된 적에게 피해를 입히면 중첩을 소모해 <span class=\"stat-ap\">(15% + 추가 공격 속도의 5% + 스킬 가속의 0.15%)의 잃은 체력 비례 마법 피해</span>를 입히고 입힌 피해량의 67%만큼 <span class=\"stat-hp\">체력을 회복</span>합니다."
+    },
+    "3118": {
+      "description": "자신이 피해를 입힌 챔피언이 3초 안에 죽으면 궁극기 전체 재사용 대기시간의 15~30% (레벨에 따라)만큼 돌려받습니다.",
+      "styledDescription": "자신이 피해를 입힌 챔피언이 3초 안에 죽으면 궁극기 전체 재사용 대기시간의 15~30% (레벨에 따라)만큼 돌려받습니다."
     },
     "3123": {
       "description": "궁극기에 치명타가 적용되어 45% 증가한 피해를 입힐 수 있습니다.\n치명타 확률을 25% 얻습니다.\n\n[상세 효과]\n다른 스킬 강화 증강과 달리 궁극기에만 적용됩니다.",
@@ -643,6 +695,14 @@
       "iconUrl": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/ux/kiwi/augments/icons/heavyisthecrown_small.png",
       "description": "공격력을 10, 주문력을 25 얻고 추가 공격력, 추가 주문력, 총공격 속도가 10% 증가합니다. 전투 중 전체 이동 속도가 5% 감소합니다.\n\n처치 관여 시 부담 중첩을 얻어 추가 공격력, 추가 주문력, 총공격 속도가 5% 증가하고 중첩당 이동 속도가 2.5% 감소합니다. (최소 50%)\n\n사망 시 중첩의 50%를 잃습니다.",
       "styledDescription": "<span class=\"stat-ad\">공격력</span>을 10, <span class=\"stat-ap\">주문력</span>을 25 얻고 <span class=\"stat-ad\">추가 공격력</span>, <span class=\"stat-ap\">추가 주문력</span>, <span class=\"stat-speed\">총공격 속도</span>가 10% 증가합니다. 전투 중 전체 <span class=\"stat-speed\">이동 속도</span>가 5% 감소합니다.<br><br><span class=\"stat-trigger\">처치 관여 시</span> 부담 중첩을 얻어 <span class=\"stat-ad\">추가 공격력</span>, <span class=\"stat-ap\">추가 주문력</span>, <span class=\"stat-speed\">총공격 속도</span>가 5% 증가하고 중첩당 <span class=\"stat-speed\">이동 속도</span>가 2.5% 감소합니다. (최소 50%)<br><br>사망 시 중첩의 50%를 잃습니다."
+    },
+    "3149": {
+      "description": "아군 챔피언을 대상으로 지정할 수 있고 체력 회복 또는 보호막 효과가 있는 특정 스킬을 강화합니다. 해당 스킬을 사용하면 첫 대상으로부터 500 거리 이내의 가장 가까운 아군 챔피언 2명에게도 함께 적용됩니다.",
+      "styledDescription": "아군 챔피언을 대상으로 지정할 수 있고 <span class=\"stat-hp\">체력 회복</span> 또는 <span class=\"stat-hp\">보호막</span> 효과가 있는 특정 스킬을 강화합니다. 해당 스킬을 사용하면 첫 대상으로부터 500 거리 이내의 가장 가까운 아군 챔피언 2명에게도 함께 적용됩니다."
+    },
+    "3159": {
+      "description": "특정 스킬로 적 챔피언을 처치하면 5초 안에 해당 스킬을 한 번 재사용할 수 있습니다. 이후 재사용할 때마다 추가 피해를 입힙니다.\n\n[상세 효과]\n최대 2회 추가로 재사용할 수 있으며, 각각 이전보다 25% 증가한 피해를 입힙니다.\n'모두가 기억하게 만드세요.'",
+      "styledDescription": "특정 스킬로 적 챔피언을 처치하면 5초 안에 해당 스킬을 한 번 재사용할 수 있습니다. 이후 재사용할 때마다 추가 피해를 입힙니다.<br><br><span class=\"aug-detail-title\">[상세 효과]</span><br><span class=\"aug-detail\">최대 2회 추가로 재사용할 수 있으며, 각각 이전보다 25% 증가한 피해를 입힙니다.<br>'모두가 기억하게 만드세요.'</span>"
     },
     "3163": {
       "name": "황홀한 나비",
