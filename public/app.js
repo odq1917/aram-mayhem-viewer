@@ -47,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const matchAugmentSearchInput = document.getElementById('matchAugmentSearchInput');
   const btnClearAugSearch = document.getElementById('btnClearAugSearch');
+  const matchPlayerSearchInput = document.getElementById('matchPlayerSearchInput');
+  const btnClearPlayerSearch = document.getElementById('btnClearPlayerSearch');
+  const matchPlayerOptions = document.getElementById('matchPlayerOptions');
 
   // 증강체 도감 모달 요소
   const btnAugmentDex = document.getElementById('btnAugmentDex');
@@ -71,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedExactChamp = '';
   let lastAppliedChampKey = null;
   let lastAppliedAugKey = null;
+  let lastAppliedPlayerKey = null;
   let filterEmptyEl = null;
   let allAugmentsMap = {};
   let dexCardsInitialized = false;
@@ -264,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedFilters = keepFilters ? {
       champ: matchChampionSearchInput?.value || '',
       aug: matchAugmentSearchInput?.value || '',
+      player: matchPlayerSearchInput?.value || '',
       exactChamp: selectedExactChamp
     } : null;
 
@@ -293,6 +298,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (champSearchDropdown) champSearchDropdown.classList.add('hidden');
       if (matchAugmentSearchInput) matchAugmentSearchInput.value = '';
       if (btnClearAugSearch) btnClearAugSearch.classList.add('hidden');
+      lastAppliedPlayerKey = '';
+      if (matchPlayerSearchInput) matchPlayerSearchInput.value = '';
+      if (btnClearPlayerSearch) btnClearPlayerSearch.classList.add('hidden');
 
       accumulatedCountBadge.textContent = `총 ${actualGamesCount}게임`;
       matchTotalCount.textContent = data.notice
@@ -304,10 +312,11 @@ document.addEventListener('DOMContentLoaded', () => {
       initMatchListDom(currentGames);
       updateProfileStats(currentGames, '');
 
-      if (savedFilters && (savedFilters.champ || savedFilters.aug)) {
+      if (savedFilters && (savedFilters.champ || savedFilters.aug || savedFilters.player)) {
         selectedExactChamp = savedFilters.exactChamp;
         if (matchChampionSearchInput) matchChampionSearchInput.value = savedFilters.champ;
         if (matchAugmentSearchInput) matchAugmentSearchInput.value = savedFilters.aug;
+        if (matchPlayerSearchInput) matchPlayerSearchInput.value = savedFilters.player;
         applyMatchFilters(true);
       }
       return data;
@@ -512,8 +521,37 @@ document.addEventListener('DOMContentLoaded', () => {
       g._allAugNames = allP.flatMap(p =>
         (p.augments || []).map(a => (a?.name || '').toLowerCase().replace(/\s+/g, ''))
       ).filter(Boolean);
+      // 플레이어 검색용 "이름#태그" (검색 대상 본인 제외)
+      g._playerKeys = allP.filter(p => !p.isTarget).map(playerSearchKey).filter(Boolean);
       gameByIdMap.set(String(g.gameId), g);
     });
+    buildPlayerOptions(games);
+  }
+
+  function playerDisplayName(p) {
+    return p.gameName ? `${p.gameName}${p.tagLine ? `#${p.tagLine}` : ''}` : (p.summonerName || '');
+  }
+  function playerSearchKey(p) {
+    return playerDisplayName(p).toLowerCase().replace(/\s+/g, '');
+  }
+
+  // 플레이어 검색 자동완성: 자주 함께한 순서로 최대 300명
+  function buildPlayerOptions(games) {
+    if (!matchPlayerOptions) return;
+    const counts = new Map();
+    for (const g of games || []) {
+      if (g.isGap) continue;
+      for (const p of [...(g.team100 || []), ...(g.team200 || [])]) {
+        if (p.isTarget) continue;
+        const name = playerDisplayName(p);
+        if (name) counts.set(name, (counts.get(name) || 0) + 1);
+      }
+    }
+    matchPlayerOptions.innerHTML = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 300)
+      .map(([name, n]) => `<option value="${escapeHtml(name)}">${n}판</option>`)
+      .join('');
   }
 
   // 한글 초성 추출 및 초성 포함 검색 도우미
@@ -868,7 +906,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyMatchFilters(force = false) {
     const rawChampVal = (matchChampionSearchInput?.value || '').trim();
     const rawAugVal = (matchAugmentSearchInput?.value || '').trim();
+    const rawPlayerVal = (matchPlayerSearchInput?.value || '').trim();
 
+    if (btnClearPlayerSearch) {
+      btnClearPlayerSearch.classList.toggle('hidden', rawPlayerVal.length === 0);
+    }
     if (btnClearChampSearch) {
       btnClearChampSearch.classList.toggle('hidden', rawChampVal.length === 0);
     }
@@ -880,18 +922,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const effectiveChampVal = getEffectiveChampQuery(rawChampVal);
     const effectiveAugKeyword = getCompletedAugQuery(rawAugVal);
+    const effectivePlayerKey = getCompletedAugQuery(rawPlayerVal).toLowerCase().replace(/\s+/g, '');
 
     // 완성된 글자 기준 검색어가 이전과 동일하면 불필요한 재계산/DOM 조작 즉시 건너뜀
-    if (force !== true && effectiveChampVal === lastAppliedChampKey && effectiveAugKeyword === lastAppliedAugKey) {
+    if (force !== true && effectiveChampVal === lastAppliedChampKey && effectiveAugKeyword === lastAppliedAugKey && effectivePlayerKey === lastAppliedPlayerKey) {
       return;
     }
     lastAppliedChampKey = effectiveChampVal;
     lastAppliedAugKey = effectiveAugKeyword;
+    lastAppliedPlayerKey = effectivePlayerKey;
 
     const actualGames = currentGames.filter(g => !g.isGap);
 
     // 유효 검색어가 모두 비어있으면 전체 목록 및 전체 통계 즉시 복원
-    if (!effectiveChampVal && !effectiveAugKeyword) {
+    if (!effectiveChampVal && !effectiveAugKeyword && !effectivePlayerKey) {
       emptyState.classList.add('hidden');
       if (filterEmptyEl) filterEmptyEl.classList.add('hidden');
       currentGames.forEach(item => {
@@ -937,6 +981,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const augList = (effectiveChampVal || augSearchMineOnly) ? (item._targetAugNames || []) : (item._allAugNames || []);
         match = augList.some(aName => aName.includes(effectiveAugKeyword));
       }
+      if (match && effectivePlayerKey) {
+        match = (item._playerKeys || []).some(key => key.includes(effectivePlayerKey));
+      }
 
       item._el.classList.toggle('hidden', !match);
       if (match) visibleCount++;
@@ -948,11 +995,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (visibleCount === 0) {
         const emptyLabel = [
           effectiveChampVal && `'${escapeHtml(effectiveChampVal)}' 챔피언`,
-          effectiveAugKeyword && `'${escapeHtml(rawAugVal)}' 증강체`
+          effectiveAugKeyword && `'${escapeHtml(rawAugVal)}' 증강체`,
+          effectivePlayerKey && `'${escapeHtml(rawPlayerVal)}' 플레이어`
         ].filter(Boolean).join(' + ');
         filterEmptyEl.innerHTML = `
           <h3>${emptyLabel} 조건에 해당하는 경기가 없습니다.</h3>
-          <p>다른 챔피언이나 증강체 이름을 검색하거나 검색창을 비워보세요.</p>
+          <p>다른 챔피언·증강체·플레이어 이름을 검색하거나 검색창을 비워보세요.</p>
         `;
         filterEmptyEl.classList.remove('hidden');
       } else {
@@ -1645,6 +1693,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (matchAugmentSearchInput) {
         matchAugmentSearchInput.value = '';
         matchAugmentSearchInput.focus();
+      }
+      applyMatchFilters();
+    });
+  }
+
+  // 플레이어 경기 실시간 검색 리스너 (아군·적군 구분 없이)
+  if (matchPlayerSearchInput) {
+    matchPlayerSearchInput.addEventListener('input', () => applyMatchFilters());
+  }
+  if (btnClearPlayerSearch) {
+    btnClearPlayerSearch.addEventListener('click', () => {
+      if (matchPlayerSearchInput) {
+        matchPlayerSearchInput.value = '';
+        matchPlayerSearchInput.focus();
       }
       applyMatchFilters();
     });

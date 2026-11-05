@@ -232,11 +232,29 @@
               type="text" 
               id="matchAugmentSearchInput" 
               class="aug-search-input" 
-              placeholder="증강체 이름으로 경기 검색... (예: 궁극의 히드라, 우글렛)" 
+              placeholder="증강체로 경기 검색 (예: 궁극의 히드라)"
               autocomplete="off"
               spellcheck="false"
             >
             <button id="btnClearAugSearch" class="btn-clear-aug-search hidden" title="검색어 초기화">
+              <i data-lucide="x" style="width:14px;height:14px;"></i>
+            </button>
+          </div>
+
+          <!-- 플레이어 경기 검색창 (아군·적군 구분 없이 함께한 경기) -->
+          <div class="toolbar-player-search">
+            <i data-lucide="users" class="player-search-icon"></i>
+            <input
+              type="text"
+              id="matchPlayerSearchInput"
+              class="player-search-input"
+              placeholder="함께한 플레이어로 경기 검색"
+              list="matchPlayerOptions"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <datalist id="matchPlayerOptions"></datalist>
+            <button id="btnClearPlayerSearch" class="btn-clear-aug-search hidden" title="플레이어 검색 초기화">
               <i data-lucide="x" style="width:14px;height:14px;"></i>
             </button>
           </div>

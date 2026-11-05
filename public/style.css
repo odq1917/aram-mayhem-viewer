@@ -593,7 +593,7 @@ body {
   gap: 10px;
   flex: 1;
   justify-content: center;
-  max-width: 780px;
+  max-width: 1040px;
 }
 
 /* 챔피언별 경기 실시간 검색창 & 드롭다운 스타일 */
@@ -602,7 +602,7 @@ body {
   display: flex;
   align-items: center;
   flex: 1;
-  max-width: 340px;
+  max-width: 300px;
   background: rgba(17, 24, 39, 0.75);
   border: 1.5px solid rgba(6, 182, 212, 0.35);
   border-radius: 12px;
@@ -790,7 +790,7 @@ body {
   display: flex;
   align-items: center;
   flex: 1;
-  max-width: 400px;
+  max-width: 320px;
   background: rgba(17, 24, 39, 0.75);
   border: 1.5px solid rgba(168, 85, 247, 0.35);
   border-radius: 12px;
@@ -826,6 +826,56 @@ body {
 .aug-search-input::placeholder {
   color: #64748b;
   font-size: 12px;
+}
+
+/* 플레이어 경기 검색창 스타일 */
+.toolbar-player-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 260px;
+  background: rgba(17, 24, 39, 0.75);
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  border-radius: 12px;
+  padding: 6px 14px;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.toolbar-player-search:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+  background: rgba(17, 24, 39, 0.95);
+}
+
+.player-search-icon {
+  width: 15px;
+  height: 15px;
+  color: #10b981;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.player-search-input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: #f1f5f9;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+}
+
+.player-search-input::placeholder {
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* 자동완성(datalist) 화살표 숨김 */
+.player-search-input::-webkit-calendar-picker-indicator {
+  display: none !important;
 }
 
 .btn-clear-aug-search {
