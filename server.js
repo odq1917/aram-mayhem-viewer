@@ -14,6 +14,7 @@ const updateChecker = require('./update-checker');
 const dataDir = require('./data-dir');
 const { syncMatches } = require('./match-sync');
 const autoRefresher = require('./auto-refresh');
+const imageCache = require('./image-cache');
 
 // 구버전(프로그램 폴더 data/)의 기록을 사용자 데이터 폴더로 이전
 try {
@@ -61,7 +62,7 @@ app.use((req, res, next) => {
   }
   // API는 이 대시보드에서 보낸 요청만 허용 (외부 사이트의 <img>·<script> 등 Origin 없는 요청 차단)
   // /api/ping 은 북마크(open.html, file://)가 서버 실행 여부 확인에 쓰므로 제외
-  if (req.path.startsWith('/api/') && req.path !== '/api/ping') {
+  if ((req.path.startsWith('/api/') && req.path !== '/api/ping') || req.path.startsWith('/img/')) {
     const site = req.headers['sec-fetch-site'];
     if (site && site !== 'same-origin' && site !== 'none') {
       return res.status(403).json({ error: 'Cross-site request blocked' });
@@ -105,6 +106,24 @@ if (IDLE_SHUTDOWN_MIN > 0) {
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// 아이콘 이미지 로컬 캐시 (CDN 장애·지연 시에도 한 번 받은 이미지는 즉시 표시)
+app.get(/^\/img\/(cd|dd)\/(.+)$/, (req, res) => {
+  req.params.host = req.params[0];
+  req.params[0] = req.params[1];
+  imageCache.handler(req, res);
+});
+// API 응답 속 CDN 이미지 주소를 로컬 캐시 경로(/img/...)로 바꿔서 보냄
+app.use('/api', (req, res, next) => {
+  const json = res.json.bind(res);
+  res.json = (body) => {
+    const str = JSON.stringify(body);
+    if (str === undefined || !/communitydragon|ddragon/.test(str)) return json(body);
+    if (!res.get('Content-Type')) res.type('json');
+    return res.send(imageCache.rewriteJson(str));
+  };
+  next();
+});
 
 // 0. 서버 생존 확인 (런처/북마크 페이지용, LCU 조회 없이 즉시 응답)
 app.get('/api/ping', (req, res) => {

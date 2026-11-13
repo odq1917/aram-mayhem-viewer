@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('profileLevel').textContent = summoner.summonerLevel || 1;
     
     const iconId = summoner.profileIconId || summoner.profileIcon || 588;
-    document.getElementById('profileIconImg').src = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`;
+    document.getElementById('profileIconImg').src = `/img/cd/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`;
 
 
     profileSection.classList.remove('hidden');
@@ -479,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fallbackChamp = id => ({
       id,
       name: `챔피언 #${id}`,
-      squarePortraitPath: `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${id}.png`
+      squarePortraitPath: `/img/cd/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${id}.png`
     });
     return games.map(g => {
       if (g.isGap) return g;
@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <div class="champ-dropdown-item ${isActive}" data-champ-name="${escapeHtml(c.name)}">
           <div class="champ-dropdown-left">
-            <img src="${c.icon}" alt="${escapeHtml(c.name)}" class="champ-dropdown-avatar" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+            <img src="${c.icon}" alt="${escapeHtml(c.name)}" class="champ-dropdown-avatar" onerror="this.src='/img/cd/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
             <span class="champ-dropdown-name">${escapeHtml(c.name)}</span>
           </div>
           <div class="champ-dropdown-right">
@@ -1064,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="col-champ">
           <div class="champ-avatar-box">
-            <img src="${champ.squarePortraitPath || ''}" alt="${escapeHtml(champ.name)}" class="champ-avatar" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+            <img src="${champ.squarePortraitPath || ''}" alt="${escapeHtml(champ.name)}" class="champ-avatar" loading="lazy" onerror="this.src='/img/cd/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
             <span class="champ-lvl">${p.champLevel || 1}</span>
           </div>
           <div class="champ-meta">
@@ -1188,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  data-aug-rarity="${aug.rarityLabel}"${augSourceAttrs(aug)}
                  data-aug-icon="${escapeHtml(aug.iconUrl)}">
               ${augSourceMark(aug)}
-              <img src="${escapeHtml(aug.iconUrl)}" alt="${escapeHtml(aug.name)}" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+              <img src="${escapeHtml(aug.iconUrl)}" alt="${escapeHtml(aug.name)}" loading="lazy" onerror="this.src='/img/cd/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
             </div>
             <span class="aug-name-label" title="${escapeHtml(aug.name)}">${labelHtml}</span>
           </div>
@@ -1477,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = `dex-card ${aug.rarityCode}`;
       card.innerHTML = `
-        <img src="${escapeHtml(aug.iconUrl)}" alt="${escapeHtml(aug.name)}" class="dex-card-icon" loading="lazy" onerror="this.src='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
+        <img src="${escapeHtml(aug.iconUrl)}" alt="${escapeHtml(aug.name)}" class="dex-card-icon" loading="lazy" onerror="this.src='/img/cd/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg'">
         <div class="dex-card-body">
           <div class="dex-card-title-row">
             <span class="dex-card-name">${escapeHtml(aug.name)}</span>
