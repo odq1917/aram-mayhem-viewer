@@ -2926,3 +2926,36 @@ body {
   color: #cbd5e1;
   font-size: 0.92em;
 }
+
+/* 아수라장 / 협곡 사용자 설정 전환 탭 (사용자 설정 게임이 있을 때만 표시) */
+.toolbar-right-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.game-mode-tabs {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.game-mode-tabs.hidden { display: none; }
+.mode-tab {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mode-tab:hover { color: #f1f5f9; }
+.mode-tab.active { background: rgba(139, 92, 246, 0.25); color: #f1f5f9; }
+.mode-tab[data-mode="custom"].active { background: rgba(16, 185, 129, 0.22); }
+.mode-tab-count { opacity: 0.7; font-weight: 500; margin-left: 2px; }
+body.mode-custom .toolbar-aug-search { display: none; }

@@ -69,6 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // 상태 변수
   let currentSummoner = null;
   let currentGames = [];
+  let allLoadedGames = [];
+  let lastNotice = '';
+  // 전적 종류: 'mayhem' (아수라장) / 'custom' (협곡 사용자 설정, 본인 기록에만 남음)
+  let gameModeTab = 'mayhem';
+  let preferredModeTab = 'mayhem';
+  try { if (localStorage.getItem('mayhem.modeTab') === 'custom') preferredModeTab = 'custom'; } catch (e) {}
   let gameByIdMap = new Map();
   let playedChampionsList = [];
   let selectedExactChamp = '';
@@ -285,32 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '전적을 불러오지 못했습니다.');
 
-      currentGames = hydrateGames(data.games || [], data.meta);
-      prepareGamesIndex(currentGames);
-      const actualGamesCount = currentGames.filter(g => !g.isGap).length;
-
-      // 챔피언 및 증강체 경기 검색창 초기화
-      selectedExactChamp = '';
-      lastAppliedChampKey = '';
-      lastAppliedAugKey = '';
-      if (matchChampionSearchInput) matchChampionSearchInput.value = '';
-      if (btnClearChampSearch) btnClearChampSearch.classList.add('hidden');
-      if (champSearchDropdown) champSearchDropdown.classList.add('hidden');
-      if (matchAugmentSearchInput) matchAugmentSearchInput.value = '';
-      if (btnClearAugSearch) btnClearAugSearch.classList.add('hidden');
-      lastAppliedPlayerKey = '';
-      if (matchPlayerSearchInput) matchPlayerSearchInput.value = '';
-      if (btnClearPlayerSearch) btnClearPlayerSearch.classList.add('hidden');
-
-      accumulatedCountBadge.textContent = `총 ${actualGamesCount}게임`;
-      matchTotalCount.textContent = data.notice
-        ? `총 ${actualGamesCount}개의 경기 · ${data.notice}`
-        : `총 ${actualGamesCount}개의 경기`;
-
-      buildPlayedChampionsList(currentGames);
-      renderChampDropdown('');
-      initMatchListDom(currentGames);
-      updateProfileStats(currentGames, '');
+      allLoadedGames = hydrateGames(data.games || [], data.meta);
+      lastNotice = data.notice || '';
+      showModeGames();
 
       if (savedFilters && (savedFilters.champ || savedFilters.aug || savedFilters.player)) {
         selectedExactChamp = savedFilters.exactChamp;
@@ -329,6 +312,72 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       if (!keepFilters) showLoading(false);
     }
+  }
+
+  // 아수라장 / 협곡 사용자 설정 탭: 불러온 전체 경기 중 선택한 종류만 목록·통계에 사용
+  const modeTabsEl = document.getElementById('gameModeTabs');
+  function showModeGames() {
+    const customCount = allLoadedGames.filter(g => !g.isGap && g.isCustomRift).length;
+    const mayhemCount = allLoadedGames.filter(g => !g.isGap && !g.isCustomRift).length;
+    // 사용자 설정 게임이 없는 소환사(다른 사람 등)는 아수라장 목록으로 표시
+    gameModeTab = customCount > 0 ? preferredModeTab : 'mayhem';
+    if (modeTabsEl) {
+      modeTabsEl.classList.toggle('hidden', customCount === 0);
+      modeTabsEl.querySelectorAll('[data-mode]').forEach(btn => {
+        const mode = btn.dataset.mode;
+        btn.classList.toggle('active', mode === gameModeTab);
+        const countEl = btn.querySelector('.mode-tab-count');
+        if (countEl) countEl.textContent = mode === 'custom' ? customCount : mayhemCount;
+      });
+    }
+    document.body.classList.toggle('mode-custom', gameModeTab === 'custom');
+    const badgeText = [...(document.querySelector('.toolbar-badge')?.childNodes || [])].find(n => n.nodeType === 3 && n.textContent.trim());
+    if (badgeText) badgeText.textContent = gameModeTab === 'custom' ? ' 협곡 사용자 설정' : ' 아수라장';
+    currentGames = gameModeTab === 'custom'
+      ? allLoadedGames.filter(g => !g.isGap && g.isCustomRift)
+      : allLoadedGames.filter(g => !g.isCustomRift);
+    prepareGamesIndex(currentGames);
+    const actualGamesCount = currentGames.filter(g => !g.isGap).length;
+
+    const emptyMsg = emptyState.querySelector('p');
+    if (emptyMsg) {
+      emptyMsg.textContent = gameModeTab === 'custom'
+        ? '협곡 사용자 설정 게임을 한 뒤 본인 닉네임으로 갱신하면 여기에 모입니다. (본인 기록에만 남습니다)'
+        : '롤 클라이언트에서 증강 칼바람을 플레이한 후 다시 조회해보세요.';
+    }
+    emptyState.classList.toggle('hidden', actualGamesCount > 0);
+
+      // 챔피언 및 증강체 경기 검색창 초기화
+      selectedExactChamp = '';
+      lastAppliedChampKey = '';
+      lastAppliedAugKey = '';
+      if (matchChampionSearchInput) matchChampionSearchInput.value = '';
+      if (btnClearChampSearch) btnClearChampSearch.classList.add('hidden');
+      if (champSearchDropdown) champSearchDropdown.classList.add('hidden');
+      if (matchAugmentSearchInput) matchAugmentSearchInput.value = '';
+      if (btnClearAugSearch) btnClearAugSearch.classList.add('hidden');
+      lastAppliedPlayerKey = '';
+      if (matchPlayerSearchInput) matchPlayerSearchInput.value = '';
+      if (btnClearPlayerSearch) btnClearPlayerSearch.classList.add('hidden');
+
+      accumulatedCountBadge.textContent = `총 ${actualGamesCount}게임`;
+      matchTotalCount.textContent = lastNotice
+        ? `총 ${actualGamesCount}개의 경기 · ${lastNotice}`
+        : `총 ${actualGamesCount}개의 경기`;
+
+      buildPlayedChampionsList(currentGames);
+      renderChampDropdown('');
+      initMatchListDom(currentGames);
+      updateProfileStats(currentGames, '');
+  }
+  if (modeTabsEl) {
+    modeTabsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-mode]');
+      if (!btn || btn.dataset.mode === gameModeTab) return;
+      preferredModeTab = btn.dataset.mode;
+      try { localStorage.setItem('mayhem.modeTab', preferredModeTab); } catch (err) {}
+      showModeGames();
+    });
   }
 
   // 전적 갱신 버튼 (게임 종료 후 최신 경기 반영)
@@ -1084,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${renderMultiKillBadge(p)}
         </div>
 
-        <div class="col-augments">
+        <div class="col-augments"${game.isCustomRift ? ' style="visibility:hidden"' : ''}>
           <span class="augment-label-bar">${SVG_SPARKLES} 장착 증강체</span>
           <div class="augment-slots-grid${(p.augments || []).length > 4 ? ` many-${Math.min(p.augments.length, 6)}` : ''}">
             ${augmentsHtml}

@@ -77,3 +77,19 @@ test('아레나 경기는 저장·표시 대상에서 제외', () => {
   assert.equal(meta.isArenaGame({ queueId: 2400, mapId: 12, gameMode: 'KIWI' }), false);
   assert.equal(meta.enrichGameData({ queueId: 1750, mapId: 30, gameMode: 'CHERRY', participants: [] }), null);
 });
+
+test('협곡 사용자 설정 게임은 증강 없이도 저장, 칼바람·다른 맵 사용자 설정은 기존 규칙 유지', () => {
+  const player = (id, puuid) => ({ participantId: id, teamId: id <= 5 ? 100 : 200, championId: 99, stats: { win: id <= 5, kills: 1, deaths: 1, assists: 1 } });
+  const ids = (n) => Array.from({ length: n }, (_, i) => ({ participantId: i + 1, player: { puuid: `p${i + 1}`, gameName: `n${i + 1}`, tagLine: 'kr1' } }));
+  const base = { gameId: 1, gameType: 'CUSTOM_GAME', queueId: 3100, gameMode: 'CLASSIC', gameDuration: 1800, participants: Array.from({ length: 10 }, (_, i) => player(i + 1)), participantIdentities: ids(10) };
+  const rift = meta.enrichGameData({ ...base, mapId: 11 }, 'p1');
+  assert.ok(rift);
+  assert.equal(rift.isCustomRift, true);
+  assert.equal(rift.isMayhemClassic, false);
+  assert.equal(rift.modeName, '협곡 사용자 설정');
+  assert.equal(rift.targetParticipant.puuid, 'p1');
+  assert.equal(meta.enrichGameData({ ...base, mapId: 12 }, 'p1'), null);
+  assert.equal(meta.enrichGameData({ ...base, mapId: 21 }, 'p1'), null);
+  const ranked = meta.enrichGameData({ ...base, gameType: 'MATCHED_GAME', queueId: 420, mapId: 11 }, 'p1');
+  assert.equal(ranked, null);
+});
