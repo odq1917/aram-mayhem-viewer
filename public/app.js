@@ -1551,9 +1551,8 @@ document.addEventListener('DOMContentLoaded', () => {
         counts[s.slot]++;
         if (s.slot !== 'R' && counts[s.slot] === 5 && !reached[s.slot]) { reached[s.slot] = true; maxOrder.push(s.slot); }
       }
-      for (const k of ['Q', 'W', 'E']) if (!reached[k]) maxOrder.push(k);
       skillHtml = `
-        <div class="skill-max-order">${maxOrder.map((k, i) => `${i ? '<span class="build-arrow">›</span>' : ''}<span class="skill-key key-${k}">${k}</span>`).join('')}<span class="skill-hint">스킬 마스터 순서</span></div>
+        ${maxOrder.length ? `<div class="skill-max-order">${maxOrder.map((k, i) => `${i ? '<span class="build-arrow">›</span>' : ''}<span class="skill-key key-${k}">${k}</span>`).join('')}<span class="skill-hint">스킬 마스터 순서</span></div>` : ''}
         <div class="skill-table">
           ${Array.from({ length: 18 }, (_, i) => {
             const s = order[i];
