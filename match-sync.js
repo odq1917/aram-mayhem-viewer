@@ -79,7 +79,8 @@ function syncMatches(puuid) {
     const existing = historyStore.getHistory(puuid);
     const prevIds = new Set(existing.games.filter(g => !g.isGap).map(g => String(g.gameId)));
     const completeIds = new Set(existing.games
-      .filter(g => !g.isGap && g.participants?.[0]?.ext &&
+      // 협곡 사용자 설정 판은 팀 오브젝트·룬이 저장되기 전 기록이면 다시 받음
+      .filter(g => !g.isGap && g.participants?.[0]?.ext && (!g.isCustomRift || g.teamStats) &&
         !(eogCache.has(String(g.gameId)) && g.participants[0].ext.totalHealsOnTeammates === undefined))
       .map(g => String(g.gameId)));
     const toFetch = candidateGames.filter(g => !completeIds.has(String(g.gameId)));

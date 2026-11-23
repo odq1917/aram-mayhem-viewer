@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentSummoner = null;
   let currentGames = [];
   let allLoadedGames = [];
+  let gameMetaChampions = {};
   let lastNotice = '';
   // 전적 종류: 'mayhem' (아수라장) / 'custom' (협곡 사용자 설정, 본인 기록에만 남음)
   let gameModeTab = 'mayhem';
@@ -291,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '전적을 불러오지 못했습니다.');
 
+      gameMetaChampions = data.meta?.champions || {};
       allLoadedGames = hydrateGames(data.games || [], data.meta);
       lastNotice = data.notice || '';
       showModeGames();
@@ -537,7 +539,12 @@ document.addEventListener('DOMContentLoaded', () => {
         champion: meta.champions[p.championId] || fallbackChamp(p.championId),
         spells: (p.spellIds || []).map(id => meta.spells[id] || null),
         items: (p.itemIds || []).map(id => (id > 0 ? meta.items[id] || null : null)),
-        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(a => a && !a.hidden), p.champLevel)
+        augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(a => a && !a.hidden), p.champLevel),
+        runeInfo: p.runes ? {
+          perks: (p.runes.perkIds || []).map(id => meta.perks?.[id] || null),
+          primary: meta.perks?.[p.runes.primaryStyle] || null,
+          sub: meta.perks?.[p.runes.subStyle] || null
+        } : null
       }));
       // 게임 종료 화면에서 받은 '팀원 보호막' 값이 있으면 회복·보호 칸에 포함
       if (participants.some(p => p.ext?.totalDamageShieldedOnTeammates !== undefined)) {
@@ -1120,6 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="champ-name">${escapeHtml(champ.name || '챔피언')}</span>
             <div class="spells-row">
               ${(p.spells || []).map(s => s?.iconUrl ? `<img src="${escapeHtml(s.iconUrl)}" class="spell-icon" loading="lazy" title="${escapeHtml(s.name)}">` : '').join('')}
+              ${p.runeInfo ? `<span class="card-runes" title="${escapeHtml(runeTitle(p.runeInfo))}">${p.runeInfo.perks[0]?.iconUrl ? `<img src="${escapeHtml(p.runeInfo.perks[0].iconUrl)}" class="spell-icon rune-keystone" loading="lazy" alt="">` : ''}${p.runeInfo.sub?.iconUrl ? `<img src="${escapeHtml(p.runeInfo.sub.iconUrl)}" class="spell-icon rune-sub" loading="lazy" alt="">` : ''}</span>` : ''}
             </div>
           </div>
         </div>
@@ -1271,12 +1279,48 @@ document.addEventListener('DOMContentLoaded', () => {
     return html;
   }
 
-  function renderTeamDetailHtml(participants, isTeamWin) {
+  // 룬 툴팁: 핵심룬 + 주 룬 3개 / 보조 계열 + 보조 룬 2개
+  function runeTitle(ri) {
+    if (!ri) return '';
+    const names = ri.perks.map(x => x?.name || '?');
+    return `${ri.primary?.name || '주 룬'}: ${names.slice(0, 4).join(' · ')}\n${ri.sub?.name || '보조 룬'}: ${names.slice(4, 6).join(' · ')}`;
+  }
+  // 소환사 주문 2개 (세로) + 룬(핵심룬·보조 계열, 있을 때만)
+  function renderMiniSpellsRunesHtml(p) {
+    const spells = (p.spells || []).slice(0, 2).map(sp => sp?.iconUrl
+      ? `<img src="${escapeHtml(sp.iconUrl)}" title="${escapeHtml(sp.name)}" loading="lazy" alt="">`
+      : '<span class="mini-empty"></span>').join('');
+    const ri = p.runeInfo;
+    const runes = ri ? `
+      <div class="mini-stack mini-runes" title="${escapeHtml(runeTitle(ri))}">
+        ${ri.perks[0]?.iconUrl ? `<img src="${escapeHtml(ri.perks[0].iconUrl)}" class="rune-keystone" loading="lazy" alt="">` : '<span class="mini-empty"></span>'}
+        ${ri.sub?.iconUrl ? `<img src="${escapeHtml(ri.sub.iconUrl)}" class="rune-sub" loading="lazy" alt="">` : '<span class="mini-empty"></span>'}
+      </div>` : '';
+    return `<div class="mini-stack mini-spells">${spells}</div>${runes}`;
+  }
+  // 협곡 사용자 설정: 팀 오브젝트 요약 + 밴
+  function renderTeamObjectivesHtml(game, teamId) {
+    const t = (game.teamStats || []).find(x => x.teamId === teamId);
+    if (!t) return '';
+    const parts = [
+      ['포탑', t.towerKills], ['억제기', t.inhibitorKills], ['용', t.dragonKills],
+      ['바론', t.baronKills], ['전령', t.riftHeraldKills], ['유충', t.hordeKills]
+    ].map(([label, v]) => `<span class="obj-chip">${label} <b>${Number(v) || 0}</b></span>`).join('');
+    const bans = (t.bans || []).map(id => {
+      const ch = gameMetaChampions[id];
+      return `<img src="${escapeHtml(ch?.squarePortraitPath || '')}" class="ban-icon" title="밴: ${escapeHtml(ch?.name || '#' + id)}" loading="lazy" alt="">`;
+    }).join('');
+    return `<div class="team-objectives">${parts}${bans ? `<span class="ban-list">밴 ${bans}</span>` : ''}</div>`;
+  }
+
+  function renderTeamDetailHtml(participants, isTeamWin, game = {}) {
+    const isCustom = Boolean(game.isCustomRift);
+    const minutes = Math.max(1, (game.gameDuration || 0) / 60);
     const headerRow = `
       <div class="detail-table-header">
         <span class="th-col th-player">소환사</span>
         <span class="th-col th-kda">KDA</span>
-        <span class="th-col th-aug">증강체</span>
+        <span class="th-col th-aug">${isCustom ? 'CS · 시야' : '증강체'}</span>
         <span class="th-col th-stat dealt">가한 피해</span>
         <span class="th-col th-stat taken">받은 피해</span>
         <span class="th-col th-stat heal">회복·보호</span>
@@ -1311,6 +1355,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="detail-player-row ${p.isTarget ? 'is-target' : ''}">
           <div class="player-info-cell">
             <img src="${p.champion?.squarePortraitPath || ''}" class="player-champ-icon" alt="${escapeHtml(p.champion?.name)}" loading="lazy">
+            ${renderMiniSpellsRunesHtml(p)}
             <span class="player-name-text${p.gameName && p.tagLine && !p.isTarget ? ' is-searchable' : ''}"
                   title="${escapeHtml(p.gameName && p.tagLine ? `${p.gameName}#${p.tagLine}` : p.summonerName)}"
                   ${p.gameName && p.tagLine ? `data-riot-id="${escapeHtml(`${p.gameName}#${p.tagLine}`)}"` : ''}>
@@ -1319,7 +1364,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ${leaverBadgeHtml}
           </div>
           <div class="player-kda-text">${p.kills}/${p.deaths}/${p.assists}</div>
-          <div class="player-augments-mini${(p.augments || []).length > 4 ? ` many-${Math.min(p.augments.length, 6)}` : ''}">${augsMini}</div>
+          ${isCustom
+            ? `<div class="player-cs-vision" title="CS ${p.minionsKilled || 0} (분당 ${((p.minionsKilled || 0) / minutes).toFixed(1)}) · 시야 점수 ${p.ext?.visionScore ?? '-'} · 와드 설치 ${p.ext?.wardsPlaced ?? '-'} · 제거 ${p.ext?.wardsKilled ?? '-'} · 제어 와드 ${p.ext?.visionWardsBoughtInGame ?? '-'}">
+                <span>CS ${p.minionsKilled || 0} <em>(${((p.minionsKilled || 0) / minutes).toFixed(1)})</em></span>
+                <span>시야 ${p.ext?.visionScore ?? '-'}</span>
+              </div>`
+            : `<div class="player-augments-mini${(p.augments || []).length > 4 ? ` many-${Math.min(p.augments.length, 6)}` : ''}">${augsMini}</div>`}
           
           <div class="player-stat-cell dealt" title="가한 피해: ${(p.totalDamage || 0).toLocaleString()} (물리 ${(p.physicalDamage || 0).toLocaleString()} / 마법 ${(p.magicDamage || 0).toLocaleString()} / 고정 ${(p.trueDamage || 0).toLocaleString()})">
             <span class="stat-num">${(p.totalDamage || 0).toLocaleString()}</span>
@@ -1363,8 +1413,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (game && !game._detailRendered) {
       const drawer = document.getElementById(`detail-${gameId}`);
       if (drawer) {
-        const team100Html = renderTeamDetailHtml(game.team100 || [], game.team100Win);
-        const team200Html = renderTeamDetailHtml(game.team200 || [], game.team200Win);
+        const team100Html = renderTeamObjectivesHtml(game, 100) + renderTeamDetailHtml(game.team100 || [], game.team100Win, game);
+        const team200Html = renderTeamObjectivesHtml(game, 200) + renderTeamDetailHtml(game.team200 || [], game.team200Win, game);
         drawer.innerHTML = `
           <div class="detail-drawer-inner">
             <div class="detail-actions">

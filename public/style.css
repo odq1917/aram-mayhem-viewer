@@ -2959,3 +2959,55 @@ body {
 .mode-tab[data-mode="custom"].active { background: rgba(16, 185, 129, 0.22); }
 .mode-tab-count { opacity: 0.7; font-weight: 500; margin-left: 2px; }
 body.mode-custom .toolbar-aug-search { display: none; }
+
+/* 상세 서랍: 소환사 주문 · 룬 (세로 2칸) */
+.mini-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.mini-stack img,
+.mini-stack .mini-empty {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  object-fit: cover;
+  display: block;
+}
+.mini-stack .mini-empty { background: rgba(255, 255, 255, 0.06); }
+.mini-runes img { border-radius: 50%; background: rgba(0, 0, 0, 0.35); }
+.mini-runes .rune-sub { padding: 1px; box-sizing: border-box; }
+.card-runes { display: inline-flex; gap: 4px; margin-left: 2px; }
+.spell-icon.rune-keystone,
+.spell-icon.rune-sub { border-radius: 50%; background: rgba(0, 0, 0, 0.35); }
+.spell-icon.rune-sub { padding: 3px; box-sizing: border-box; }
+
+/* 협곡 사용자 설정: CS·시야 칸, 팀 오브젝트 */
+.player-cs-vision {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.player-cs-vision em { font-style: normal; opacity: 0.7; }
+.team-objectives {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+}
+.obj-chip {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.obj-chip b { color: #f1f5f9; font-weight: 600; }
+.ban-list { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; }
+.ban-icon { width: 18px; height: 18px; border-radius: 4px; filter: grayscale(0.85); opacity: 0.8; }

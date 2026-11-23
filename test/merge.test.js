@@ -88,6 +88,11 @@ test('협곡 사용자 설정 게임은 증강 없이도 저장, 칼바람·다�
   assert.equal(rift.isMayhemClassic, false);
   assert.equal(rift.modeName, '협곡 사용자 설정');
   assert.equal(rift.targetParticipant.puuid, 'p1');
+  assert.equal(rift.participants[0].runes, undefined);
+  const withRunes = meta.enrichGameData({ ...base, mapId: 11, teams: [{ teamId: 100, towerKills: 3, bans: [{ championId: 99 }] }],
+    participants: base.participants.map(p => ({ ...p, stats: { ...p.stats, perk0: 8229, perk4: 8126, perkPrimaryStyle: 8200, perkSubStyle: 8100 } })) }, 'p1');
+  assert.deepEqual(withRunes.participants[0].runes, { perkIds: [8229, 0, 0, 0, 8126, 0], primaryStyle: 8200, subStyle: 8100 });
+  assert.deepEqual(withRunes.teamStats[0], { teamId: 100, towerKills: 3, inhibitorKills: 0, dragonKills: 0, baronKills: 0, riftHeraldKills: 0, hordeKills: 0, bans: [99] });
   assert.equal(meta.enrichGameData({ ...base, mapId: 12 }, 'p1'), null);
   assert.equal(meta.enrichGameData({ ...base, mapId: 21 }, 'p1'), null);
   const ranked = meta.enrichGameData({ ...base, gameType: 'MATCHED_GAME', queueId: 420, mapId: 11 }, 'p1');

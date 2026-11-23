@@ -33,7 +33,14 @@ const EXTRA_STAT_KEYS = [
   'longestTimeSpentLiving',
   'goldSpent',
   'firstBloodKill',
-  'firstBloodAssist'
+  'firstBloodAssist',
+  'visionScore',                // 시야 점수 (협곡)
+  'wardsPlaced',
+  'wardsKilled',
+  'visionWardsBoughtInGame',    // 제어 와드 구매
+  'damageDealtToObjectives',
+  'turretKills',
+  'inhibitorKills'
 ];
 
 // 아레나(사투의 전장)는 이 전적 검색기에서 다루지 않음 (증강 규칙이 달라 통계를 흐림)
@@ -110,7 +117,7 @@ class MetaManager {
   // 배포본에 들어 있는 기본 데이터(cache/) + 사용자 데이터 폴더의 갱신본(cache/)을 id 기준으로 합쳐서 사용
   // - 최신 데이터에서 빠진 예전 증강/아이템도 지난 경기 표시를 위해 계속 보관
   // - 갱신본이 없거나 12시간 넘게 지났으면 백그라운드로 다시 받아 합친 뒤 onUpdate 로 반영
-  async fetchWithCache(filename, url, onUpdate) {
+  async fetchWithCache(filename, url, onUpdate, transform = x => x) {
     const readJson = p => {
       try {
         return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
@@ -128,7 +135,7 @@ class MetaManager {
         try {
           const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const fresh = mergeById(merged, await res.json());
+          const fresh = mergeById(merged, transform(await res.json()));
           fs.mkdirSync(userCacheDir, { recursive: true });
           fs.writeFileSync(userPath, JSON.stringify(fresh), 'utf8');
           return fresh;
@@ -353,6 +360,31 @@ class MetaManager {
   async loadPerks() {
     const url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/ko_kr/v1/perks.json';
     this.buildPerks(await this.fetchWithCache('perks.json', url, fresh => this.buildPerks(fresh)));
+    // 룬 계열(정밀·지배·마법·결의·영감) 아이콘
+    const styleUrl = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/ko_kr/v1/perkstyles.json';
+    try {
+      this.buildPerkStyles(await this.fetchWithCache('perkstyles.json', styleUrl, fresh => this.buildPerkStyles(fresh), data => (Array.isArray(data) ? data : data?.styles || [])));
+    } catch (e) {
+      console.warn('[MetaManager] 룬 계열 정보 로드 실패:', e.message);
+    }
+  }
+
+  buildPerkStyles(data) {
+    const styles = Array.isArray(data) ? data : data?.styles;
+    if (!Array.isArray(styles)) return;
+    for (const st of styles) {
+      if (!st?.id) continue;
+      const cleanPath = String(st.iconPath || '').toLowerCase().replace('/lol-game-data/assets/', '');
+      this.perks[st.id] = {
+        id: st.id,
+        name: st.name,
+        iconUrl: safeIconUrl(cleanPath ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/${cleanPath}` : '')
+      };
+    }
+  }
+
+  getPerk(id) {
+    return (id && this.perks[id]) || null;
   }
 
   buildPerks(list) {
@@ -366,7 +398,7 @@ class MetaManager {
         this.perks[perk.id] = {
           id: perk.id,
           name: perk.name,
-          iconUrl
+          iconUrl: safeIconUrl(iconUrl)
         };
       });
     }
@@ -446,7 +478,7 @@ class MetaManager {
 
   // 게임 목록에 등장하는 메타데이터만 추려서 반환 (클라이언트가 ID → 객체로 복원)
   buildMetaFor(games) {
-    const out = { champions: {}, items: {}, spells: {}, augments: {} };
+    const out = { champions: {}, items: {}, spells: {}, augments: {}, perks: {} };
     for (const g of games) {
       if (!g || g.isGap) continue;
       for (const p of g.participants || []) {
@@ -465,6 +497,17 @@ class MetaManager {
         }
         for (const id of p.augmentIds || []) {
           if (id > 0 && !out.augments[id]) out.augments[id] = this.getAugment(id);
+        }
+        if (p.runes) {
+          for (const id of [...(p.runes.perkIds || []), p.runes.primaryStyle, p.runes.subStyle]) {
+            const perk = this.getPerk(id);
+            if (perk && !out.perks[id]) out.perks[id] = { id: perk.id, name: perk.name, iconUrl: safeIconUrl(perk.iconUrl) };
+          }
+        }
+      }
+      for (const t of g.teamStats || []) {
+        for (const id of t.bans || []) {
+          if (!out.champions[id]) out.champions[id] = this.getChampion(id);
         }
       }
     }
@@ -514,6 +557,12 @@ class MetaManager {
         }
       }
       const augments = augmentIds.map(id => this.getAugment(id)).filter(a => a && !a.hidden);
+
+      // 룬 (아수라장은 룬이 없어 모두 0 → 저장하지 않음). 룬 파편은 LCU 경기 기록에 없음
+      const perkIds = [0, 1, 2, 3, 4, 5].map(i => Number(stats[`perk${i}`]) || 0);
+      const runes = perkIds.some(Boolean)
+        ? { perkIds, primaryStyle: Number(stats.perkPrimaryStyle) || 0, subStyle: Number(stats.perkSubStyle) || 0 }
+        : undefined;
 
       // 아이템 추출 (item0 ~ item6)
       const items = [];
@@ -571,6 +620,7 @@ class MetaManager {
         items,
         augments,
         augmentIds,
+        runes,
         isLeaver: Boolean(stats.leaver || stats.causedEarlySurrender),
         causedEarlySurrender: Boolean(stats.causedEarlySurrender),
         earlySurrender: Boolean(stats.earlySurrender || stats.gameEndedInEarlySurrender),
@@ -672,7 +722,18 @@ class MetaManager {
       team100Win: team100.length > 0 && team100[0].win,
       team200Win: team200.length > 0 && team200[0].win,
       team100Kills,
-      team200Kills
+      team200Kills,
+      // 협곡 사용자 설정: 팀 오브젝트(포탑·용·바론·전령·공허 유충) 및 밴
+      ...(isCustomRift ? { teamStats: (game.teams || []).map(t => ({
+        teamId: t.teamId,
+        towerKills: Number(t.towerKills) || 0,
+        inhibitorKills: Number(t.inhibitorKills) || 0,
+        dragonKills: Number(t.dragonKills) || 0,
+        baronKills: Number(t.baronKills) || 0,
+        riftHeraldKills: Number(t.riftHeraldKills) || 0,
+        hordeKills: Number(t.hordeKills) || 0,
+        bans: (t.bans || []).map(b => Number(b.championId) || 0).filter(id => id > 0)
+      })) } : {})
     };
   }
 }
