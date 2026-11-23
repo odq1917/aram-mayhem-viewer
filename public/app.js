@@ -71,6 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentGames = [];
   let allLoadedGames = [];
   let gameMetaChampions = {};
+  let gameMetaPerks = {};
+  let gameMetaPerkStyles = {};
+  let preciseIdSet = new Set();
+  const liveDataCache = new Map();
   let lastNotice = '';
   // 전적 종류: 'mayhem' (아수라장) / 'custom' (협곡 사용자 설정, 본인 기록에만 남음)
   let gameModeTab = 'mayhem';
@@ -293,6 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok) throw new Error(data.error || '전적을 불러오지 못했습니다.');
 
       gameMetaChampions = data.meta?.champions || {};
+      gameMetaPerks = data.meta?.perks || {};
+      gameMetaPerkStyles = data.meta?.perkStyles || {};
+      preciseIdSet = new Set(data.preciseIds || []);
       allLoadedGames = hydrateGames(data.games || [], data.meta);
       lastNotice = data.notice || '';
       showModeGames();
@@ -1404,6 +1411,260 @@ document.addEventListener('DOMContentLoaded', () => {
     return headerRow + rows;
   }
 
+  // ---------- 경기 상세 탭: 룬 / 빌드 ----------
+  const normRiotKey = s => String(s || '').toLowerCase().replace(/\s+/g, '');
+
+  async function loadLiveData(gameId) {
+    if (!preciseIdSet.has(String(gameId))) return null;
+    if (liveDataCache.has(gameId)) return liveDataCache.get(gameId);
+    try {
+      const res = await fetch(`/api/live/${gameId}`);
+      const data = res.ok ? await res.json() : null;
+      liveDataCache.set(gameId, data);
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 경기 참가자 ↔ 정밀 기록 플레이어 연결 (Riot ID, 없으면 챔피언 영문 이름)
+  function livePlayerFor(live, p) {
+    if (!live || !p) return null;
+    const players = live.players || {};
+    const key = normRiotKey(p.gameName && p.tagLine ? `${p.gameName}#${p.tagLine}` : '');
+    if (key && players[key]) return { key, ...players[key] };
+    const alias = String(p.champion?.alias || '').toLowerCase();
+    const hit = Object.entries(players).find(([, v]) => alias && String(v.champion || '').toLowerCase() === alias);
+    return hit ? { key: hit[0], ...hit[1] } : null;
+  }
+
+  function isLiveMe(live, p) {
+    const lp = livePlayerFor(live, p);
+    return Boolean(lp && live.me && lp.key === live.me.key);
+  }
+
+  function renderPlayerPicker(game, selectedIdx, isDim = () => false) {
+    const order = [...(game.team100 || []), ...(game.team200 || [])];
+    return `<div class="pane-player-picker">${order.map(p => {
+      const idx = game.participants.indexOf(p);
+      return `<button class="picker-player team-${p.teamId}${idx === selectedIdx ? ' selected' : ''}${isDim(p) ? ' dim' : ''}${p.isTarget ? ' is-target' : ''}" data-pidx="${idx}" title="${escapeHtml(p.gameName || p.summonerName || '')}">
+        <img src="${escapeHtml(p.champion?.squarePortraitPath || '')}" alt="" loading="lazy">
+      </button>`;
+    }).join('')}</div>`;
+  }
+
+  function perkIconHtml(id, selected, extraClass = '') {
+    const perk = gameMetaPerks[id] || null;
+    return `<span class="rune-node${selected ? ' on' : ''} ${extraClass}" title="${escapeHtml(perk?.name || '')}">${perk?.iconUrl ? `<img src="${escapeHtml(perk.iconUrl)}" alt="" loading="lazy">` : ''}</span>`;
+  }
+
+  function fillEogDesc(desc, vars) {
+    return escapeHtml(String(desc || '').replace(/@eogvar(\d)@/gi, (m, n) => {
+      const v = vars?.[Number(n) - 1];
+      return typeof v === 'number' ? v.toLocaleString() : '-';
+    }));
+  }
+
+  function renderRunesPane(game, idx, live) {
+    const p = game.participants[idx];
+    const picker = renderPlayerPicker(game, idx, pl => !pl.runes);
+    if (!p?.runes) {
+      return picker + '<div class="pane-empty">이 플레이어는 룬 정보가 없습니다. (아수라장은 룬이 없는 모드입니다)</div>';
+    }
+    const runes = p.runes;
+    const chosen = new Set(runes.perkIds || []);
+    const primary = gameMetaPerkStyles[runes.primaryStyle];
+    const sub = gameMetaPerkStyles[runes.subStyle];
+    const styleHead = (id) => {
+      const st = gameMetaPerks[id];
+      return `<div class="rune-tree-head">${st?.iconUrl ? `<img src="${escapeHtml(st.iconUrl)}" alt="">` : ''}<span>${escapeHtml(st?.name || '')}</span></div>`;
+    };
+    const rows = (style, from, to) => (style?.slots || []).filter(sl => sl.type !== 'kStatMod').slice(from, to)
+      .map((sl, i) => `<div class="rune-row${from + i === 0 ? ' keystone-row' : ''}">${sl.perks.map(id => perkIconHtml(id, chosen.has(id))).join('')}</div>`).join('');
+
+    // 룬 파편: 정밀 기록이 있는 본인 경기만
+    let shardsHtml = '';
+    const me = live && isLiveMe(live, p) ? live : null;
+    const statPerks = me?.runes?.statPerks || [];
+    const statSlots = (primary?.slots || []).filter(sl => sl.type === 'kStatMod');
+    if (statPerks.length && statSlots.length) {
+      for (const [id, perk] of Object.entries(live.meta?.perks || {})) if (!gameMetaPerks[id]) gameMetaPerks[id] = perk;
+      shardsHtml = `<div class="rune-shards">${statSlots.map((sl, i) =>
+        `<div class="rune-row shard-row">${sl.perks.map(id => perkIconHtml(id, statPerks[i] === id, 'shard')).join('')}</div>`).join('')}</div>`;
+    } else {
+      shardsHtml = '<div class="rune-shards-note">룬 파편은 <b>정밀 수집</b>을 켠 상태로 한 본인 경기만 볼 수 있습니다.</div>';
+    }
+
+    const stats = (runes.perkIds || []).map((id, i) => {
+      const perk = gameMetaPerks[id];
+      if (!perk) return '';
+      const descs = (perk.eogDescs || []).map(d => `<div>${fillEogDesc(d, runes.vars?.[i])}</div>`).join('');
+      return `<div class="rune-stat-item">${perk.iconUrl ? `<img src="${escapeHtml(perk.iconUrl)}" alt="">` : ''}<div><div class="rune-stat-name">${escapeHtml(perk.name)}</div>${descs || '<div class="muted">기록 없음</div>'}</div></div>`;
+    }).join('');
+
+    return `${picker}
+      <div class="runes-layout">
+        <div class="rune-tree">${styleHead(runes.primaryStyle)}${rows(primary, 0, 4)}</div>
+        <div class="rune-tree">${styleHead(runes.subStyle)}${rows(sub, 1, 4)}${shardsHtml}</div>
+        <div class="rune-stats"><div class="rune-stats-title">룬 스탯</div>${stats}</div>
+      </div>`;
+  }
+
+  function renderBuildPane(game, idx, live) {
+    if (!live) {
+      return `<div class="pane-empty">
+        이 경기는 정밀 기록이 없습니다.<br>
+        상단의 <b>정밀 수집</b>을 켜 두면 앞으로 하는 게임의 <b>아이템 구매 순서 · 스킬 찍은 순서 · 룬 파편</b>이 기록됩니다.
+      </div>`;
+    }
+    const p = game.participants[idx];
+    const picker = renderPlayerPicker(game, idx, pl => !livePlayerFor(live, pl));
+    const lp = livePlayerFor(live, p);
+    const items = lp?.items || [];
+    const itemMeta = live.meta?.items || {};
+    const groups = [];
+    for (const it of items) {
+      const minute = Math.floor((it.t || 0) / 60);
+      const last = groups[groups.length - 1];
+      if (last && last.minute === minute) last.items.push(it);
+      else groups.push({ minute, items: [it] });
+    }
+    const itemsHtml = groups.length
+      ? `<div class="build-items">${groups.map((g, i) => `
+          ${i > 0 ? '<span class="build-arrow">›</span>' : ''}
+          <div class="build-group">
+            <div class="build-group-icons">${g.items.map(it => {
+              const m = itemMeta[it.id];
+              return m?.iconUrl ? `<img src="${escapeHtml(m.iconUrl)}" title="${escapeHtml(m.name)}" alt="" loading="lazy">` : `<span class="item-missing" title="#${it.id}"></span>`;
+            }).join('')}</div>
+            <span class="build-minute">${g.minute}분</span>
+          </div>`).join('')}</div>`
+      : '<div class="pane-empty small">이 플레이어의 아이템 기록이 없습니다.</div>';
+
+    let skillHtml;
+    if (isLiveMe(live, p) && (live.skillOrder || []).length) {
+      const order = live.skillOrder.slice(0, 18);
+      const reached = {};
+      const maxOrder = [];
+      const counts = { Q: 0, W: 0, E: 0, R: 0 };
+      for (const s of live.skillOrder) {
+        counts[s.slot]++;
+        if (s.slot !== 'R' && counts[s.slot] === 5 && !reached[s.slot]) { reached[s.slot] = true; maxOrder.push(s.slot); }
+      }
+      for (const k of ['Q', 'W', 'E']) if (!reached[k]) maxOrder.push(k);
+      skillHtml = `
+        <div class="skill-max-order">${maxOrder.map((k, i) => `${i ? '<span class="build-arrow">›</span>' : ''}<span class="skill-key key-${k}">${k}</span>`).join('')}<span class="skill-hint">스킬 마스터 순서</span></div>
+        <div class="skill-table">
+          ${Array.from({ length: 18 }, (_, i) => {
+            const s = order[i];
+            return `<div class="skill-cell"><span class="skill-lv">${i + 1}</span><span class="skill-key ${s ? 'key-' + s.slot : 'empty'}">${s ? s.slot : ''}</span></div>`;
+          }).join('')}
+        </div>`;
+    } else {
+      skillHtml = '<div class="pane-empty small">스킬 순서는 정밀 수집을 켠 <b>본인</b>만 기록됩니다.</div>';
+    }
+
+    return `${picker}
+      ${live.partial ? '<div class="build-note">게임 도중부터 기록을 시작해 앞부분이 빠져 있을 수 있습니다.</div>' : ''}
+      <div class="build-section"><div class="build-title">아이템 빌드</div>${itemsHtml}</div>
+      <div class="build-section"><div class="build-title">스킬 빌드</div>${skillHtml}</div>`;
+  }
+
+  async function renderDetailPane(drawer, game, tab, idx) {
+    const pane = drawer.querySelector(`.detail-pane[data-pane="${tab}"]`);
+    if (!pane || tab === 'summary') return;
+    if (idx === undefined) {
+      idx = Number(pane.dataset.pidx);
+      if (!Number.isInteger(idx)) idx = Math.max(0, game.participants.indexOf(game.targetParticipant));
+    }
+    pane.dataset.pidx = idx;
+    if (!pane.innerHTML.trim()) pane.innerHTML = '<div class="pane-empty small">불러오는 중...</div>';
+    const live = await loadLiveData(String(game.gameId));
+    pane.innerHTML = tab === 'runes' ? renderRunesPane(game, idx, live) : renderBuildPane(game, idx, live);
+  }
+
+  matchListContainer.addEventListener('click', (e) => {
+    const tabBtn = e.target.closest('.detail-tab');
+    const pickBtn = e.target.closest('.picker-player');
+    if (!tabBtn && !pickBtn) return;
+    e.stopPropagation();
+    const drawer = e.target.closest('.match-detail-drawer');
+    const game = drawer && gameByIdMap.get(drawer.id.replace('detail-', ''));
+    if (!game) return;
+    if (tabBtn) {
+      const tab = tabBtn.dataset.tab;
+      drawer.querySelectorAll('.detail-tab').forEach(b => b.classList.toggle('active', b === tabBtn));
+      drawer.querySelectorAll('.detail-pane').forEach(pn => pn.classList.toggle('hidden', pn.dataset.pane !== tab));
+      renderDetailPane(drawer, game, tab);
+    } else {
+      const pane = pickBtn.closest('.detail-pane');
+      renderDetailPane(drawer, game, pane.dataset.pane, Number(pickBtn.dataset.pidx));
+    }
+  });
+
+  // ---------- 정밀 기록 수집 (백그라운드) 설정 ----------
+  const btnBackgroundMode = document.getElementById('btnBackgroundMode');
+  const backgroundModal = document.getElementById('backgroundModal');
+  const bgModeCheckbox = document.getElementById('bgModeCheckbox');
+  const bgModeStatus = document.getElementById('bgModeStatus');
+  const bgModeDot = document.getElementById('bgModeDot');
+
+  function renderBackgroundStatus(st) {
+    if (!st) return;
+    if (bgModeCheckbox) bgModeCheckbox.checked = Boolean(st.enabled);
+    if (bgModeDot) {
+      bgModeDot.classList.toggle('on', Boolean(st.enabled));
+      bgModeDot.title = st.enabled ? '켜짐' : '꺼짐';
+    }
+    if (bgModeStatus) {
+      const lines = [];
+      if (!st.supported) lines.push('이 환경에서는 시작 프로그램 등록을 지원하지 않습니다.');
+      else if (st.enabled) lines.push(st.registered ? '✅ 켜짐 · Windows 시작 프로그램에 등록됨' : '⚠️ 켜져 있지만 시작 프로그램 등록을 확인하지 못했습니다.');
+      else lines.push('꺼짐 · 전적 검색기가 켜져 있는 동안에만 기록합니다.');
+      if (st.collector?.collecting) lines.push('🎮 지금 게임을 기록하고 있습니다.');
+      lines.push(`정밀 기록이 저장된 경기: ${st.preciseGames || 0}개`);
+      bgModeStatus.innerHTML = lines.map(l => `<div>${escapeHtml(l)}</div>`).join('');
+    }
+  }
+
+  async function loadBackgroundStatus() {
+    try {
+      const res = await fetch('/api/background');
+      if (res.ok) renderBackgroundStatus(await res.json());
+    } catch (e) {}
+  }
+
+  if (btnBackgroundMode && backgroundModal) {
+    btnBackgroundMode.addEventListener('click', () => {
+      backgroundModal.classList.remove('hidden');
+      loadBackgroundStatus();
+    });
+    document.getElementById('btnCloseBackgroundModal')?.addEventListener('click', () => backgroundModal.classList.add('hidden'));
+    backgroundModal.addEventListener('click', (e) => {
+      if (e.target === backgroundModal) backgroundModal.classList.add('hidden');
+    });
+    bgModeCheckbox?.addEventListener('change', async () => {
+      const want = bgModeCheckbox.checked;
+      bgModeCheckbox.disabled = true;
+      try {
+        const res = await fetch('/api/background', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: want })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '설정 실패');
+        renderBackgroundStatus(data);
+      } catch (err) {
+        bgModeCheckbox.checked = !want;
+        if (bgModeStatus) bgModeStatus.textContent = err.message;
+      } finally {
+        bgModeCheckbox.disabled = false;
+      }
+    });
+    loadBackgroundStatus();
+  }
+
   // 매치 카드 클릭 시 10인 상세 서랍 지연 렌더링(Lazy Render) 후 토글
   window.toggleMatchDetail = function(gameId) {
     const card = document.getElementById(`match-${gameId}`);
@@ -1415,11 +1676,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (drawer) {
         const team100Html = renderTeamObjectivesHtml(game, 100) + renderTeamDetailHtml(game.team100 || [], game.team100Win, game);
         const team200Html = renderTeamObjectivesHtml(game, 200) + renderTeamDetailHtml(game.team200 || [], game.team200Win, game);
+        const hasRunes = (game.participants || []).some(p => p.runeInfo);
+        const isPrecise = preciseIdSet.has(String(game.gameId));
         drawer.innerHTML = `
           <div class="detail-drawer-inner">
             <div class="detail-actions">
+              <div class="detail-tabs" data-game-id="${game.gameId}">
+                <button class="detail-tab active" data-tab="summary">종합</button>
+                ${hasRunes || isPrecise ? '<button class="detail-tab" data-tab="runes">룬</button>' : ''}
+                <button class="detail-tab" data-tab="build">빌드${isPrecise ? ' <span class="precise-dot" title="정밀 기록 있음"></span>' : ''}</button>
+              </div>
               <button class="btn-full-stats" data-game-id="${game.gameId}">📊 모든 스탯 자세히 보기</button>
             </div>
+            <div class="detail-pane" data-pane="summary">
             <div class="detail-teams-container">
               <div class="team-block">
                 <div class="team-header">
@@ -1436,6 +1705,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${team200Html}
               </div>
             </div>
+            </div>
+            <div class="detail-pane hidden" data-pane="runes"></div>
+            <div class="detail-pane hidden" data-pane="build"></div>
           </div>
         `;
         game._detailRendered = true;

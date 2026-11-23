@@ -87,6 +87,7 @@ class MetaManager {
     this.items = {};
     this.spells = {};
     this.perks = {};
+    this.perkStyles = {};
     this.initialized = false;
   }
 
@@ -380,11 +381,26 @@ class MetaManager {
         name: st.name,
         iconUrl: safeIconUrl(cleanPath ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/${cleanPath}` : '')
       };
+      // 룬 트리 구성 (핵심룬 줄 + 일반 룬 3줄 + 룬 파편 3줄)
+      this.perkStyles[st.id] = {
+        id: st.id,
+        slots: (st.slots || []).map(sl => ({ type: sl.type, perks: (sl.perks || []).map(Number) }))
+      };
     }
   }
 
   getPerk(id) {
     return (id && this.perks[id]) || null;
+  }
+
+  // 표시용 룬 정보 묶음 (id → { id, name, iconUrl, eogDescs })
+  getPerksMeta(ids) {
+    const out = {};
+    for (const id of ids) {
+      const perk = this.getPerk(id);
+      if (perk && !out[id]) out[id] = { id: perk.id, name: perk.name, iconUrl: safeIconUrl(perk.iconUrl), eogDescs: perk.eogDescs || [] };
+    }
+    return out;
   }
 
   buildPerks(list) {
@@ -398,7 +414,9 @@ class MetaManager {
         this.perks[perk.id] = {
           id: perk.id,
           name: perk.name,
-          iconUrl: safeIconUrl(iconUrl)
+          iconUrl: safeIconUrl(iconUrl),
+          // 룬 스탯 문구 (예: '적에게 입힌 총 피해량: @eogvar1@') - 태그는 지우고 글자만
+          eogDescs: (perk.endOfGameStatDescs || []).map(d => String(d).replace(/<[^>]*>/g, '')).slice(0, 3)
         };
       });
     }
@@ -478,7 +496,7 @@ class MetaManager {
 
   // 게임 목록에 등장하는 메타데이터만 추려서 반환 (클라이언트가 ID → 객체로 복원)
   buildMetaFor(games) {
-    const out = { champions: {}, items: {}, spells: {}, augments: {}, perks: {} };
+    const out = { champions: {}, items: {}, spells: {}, augments: {}, perks: {}, perkStyles: {} };
     for (const g of games) {
       if (!g || g.isGap) continue;
       for (const p of g.participants || []) {
@@ -499,10 +517,15 @@ class MetaManager {
           if (id > 0 && !out.augments[id]) out.augments[id] = this.getAugment(id);
         }
         if (p.runes) {
-          for (const id of [...(p.runes.perkIds || []), p.runes.primaryStyle, p.runes.subStyle]) {
-            const perk = this.getPerk(id);
-            if (perk && !out.perks[id]) out.perks[id] = { id: perk.id, name: perk.name, iconUrl: safeIconUrl(perk.iconUrl) };
+          // 사용한 룬 계열의 트리 전체(선택 안 한 룬은 흐리게 표시) + 룬 파편 줄
+          const ids = [...(p.runes.perkIds || []), p.runes.primaryStyle, p.runes.subStyle];
+          for (const styleId of [p.runes.primaryStyle, p.runes.subStyle]) {
+            const style = this.perkStyles[styleId];
+            if (!style) continue;
+            out.perkStyles[styleId] = style;
+            for (const sl of style.slots) ids.push(...sl.perks);
           }
+          Object.assign(out.perks, this.getPerksMeta(ids.filter(id => !out.perks[id])));
         }
       }
       for (const t of g.teamStats || []) {
@@ -561,7 +584,13 @@ class MetaManager {
       // 룬 (아수라장은 룬이 없어 모두 0 → 저장하지 않음). 룬 파편은 LCU 경기 기록에 없음
       const perkIds = [0, 1, 2, 3, 4, 5].map(i => Number(stats[`perk${i}`]) || 0);
       const runes = perkIds.some(Boolean)
-        ? { perkIds, primaryStyle: Number(stats.perkPrimaryStyle) || 0, subStyle: Number(stats.perkSubStyle) || 0 }
+        ? {
+          perkIds,
+          primaryStyle: Number(stats.perkPrimaryStyle) || 0,
+          subStyle: Number(stats.perkSubStyle) || 0,
+          // 룬별 스탯 값 (룬 스탯 문구의 @eogvar1~3@ 자리)
+          vars: [0, 1, 2, 3, 4, 5].map(i => [1, 2, 3].map(v => Number(stats[`perk${i}Var${v}`]) || 0))
+        }
         : undefined;
 
       // 아이템 추출 (item0 ~ item6)
@@ -724,7 +753,7 @@ class MetaManager {
       team100Kills,
       team200Kills,
       // 협곡 사용자 설정: 팀 오브젝트(포탑·용·바론·전령·공허 유충) 및 밴
-      ...(isCustomRift ? { teamStats: (game.teams || []).map(t => ({
+      ...(isCustomRift ? { customDataVersion: 2, teamStats: (game.teams || []).map(t => ({
         teamId: t.teamId,
         towerKills: Number(t.towerKills) || 0,
         inhibitorKills: Number(t.inhibitorKills) || 0,

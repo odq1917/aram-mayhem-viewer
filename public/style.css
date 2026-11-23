@@ -3011,3 +3011,91 @@ body.mode-custom .toolbar-aug-search { display: none; }
 .obj-chip b { color: #f1f5f9; font-weight: 600; }
 .ban-list { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; }
 .ban-icon { width: 18px; height: 18px; border-radius: 4px; filter: grayscale(0.85); opacity: 0.8; }
+
+/* ===== 경기 상세 탭 (종합 / 룬 / 빌드) ===== */
+.detail-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.detail-tabs { display: inline-flex; gap: 4px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); }
+.detail-tab { border: 0; background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 600; padding: 6px 16px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.detail-tab:hover { color: #f1f5f9; }
+.detail-tab.active { background: #f1f5f9; color: #111827; }
+.precise-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; }
+.detail-pane.hidden { display: none; }
+.pane-empty { padding: 28px 12px; text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.7; }
+.pane-empty.small { padding: 10px 4px; text-align: left; font-size: 12px; }
+.pane-player-picker { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.picker-player { padding: 0; border: 2px solid transparent; border-radius: 8px; background: none; cursor: pointer; line-height: 0; opacity: 0.75; }
+.picker-player img { width: 34px; height: 34px; border-radius: 6px; }
+.picker-player.team-100 { box-shadow: inset 0 -3px 0 rgba(59, 130, 246, 0.7); }
+.picker-player.team-200 { box-shadow: inset 0 -3px 0 rgba(239, 68, 68, 0.7); }
+.picker-player:nth-child(5) { margin-right: 14px; }
+.picker-player.dim { opacity: 0.3; }
+.picker-player.selected { opacity: 1; border-color: #f1f5f9; }
+.picker-player.is-target:not(.selected) { border-color: rgba(167, 139, 250, 0.6); }
+
+/* 룬 탭 */
+.runes-layout { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
+.rune-tree, .rune-stats { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; }
+.rune-tree-head { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+.rune-tree-head img { width: 26px; height: 26px; }
+.rune-row { display: flex; justify-content: center; gap: 14px; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.rune-row:first-of-type { border-top: 0; }
+.rune-node { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; opacity: 0.22; filter: grayscale(1); }
+.rune-node img { width: 100%; height: 100%; }
+.keystone-row .rune-node { width: 42px; height: 42px; }
+.rune-node.on { opacity: 1; filter: none; box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55); background: rgba(0, 0, 0, 0.35); }
+.rune-shards { margin-top: 8px; }
+.shard-row { gap: 12px; padding: 5px 0; }
+.rune-node.shard { width: 22px; height: 22px; }
+.rune-shards-note { margin-top: 12px; font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.6; }
+.rune-stats-title { font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+.rune-stat-item { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; line-height: 1.5; color: #cbd5e1; }
+.rune-stat-item:first-of-type { border-top: 0; }
+.rune-stat-item img { width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 0, 0, 0.35); flex-shrink: 0; }
+.rune-stat-name { font-weight: 600; color: #f1f5f9; }
+.rune-stat-item .muted { color: var(--text-muted); }
+
+/* 빌드 탭 */
+.build-section { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.build-title { font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+.build-note { font-size: 12px; color: #fbbf24; margin-bottom: 10px; }
+.build-items { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 8px; }
+.build-group { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.build-group-icons { display: flex; gap: 2px; }
+.build-group-icons img, .item-missing { width: 28px; height: 28px; border-radius: 5px; display: block; background: rgba(255, 255, 255, 0.06); }
+.build-minute { font-size: 11px; color: var(--text-muted); }
+.build-arrow { color: var(--text-muted); font-size: 16px; line-height: 28px; }
+.skill-max-order { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.skill-hint { font-size: 11px; color: var(--text-muted); margin-left: 6px; }
+.skill-key { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; font-size: 12px; font-weight: 700; background: rgba(255, 255, 255, 0.08); color: #f1f5f9; }
+.skill-key.key-Q { background: rgba(59, 130, 246, 0.35); }
+.skill-key.key-W { background: rgba(16, 185, 129, 0.35); }
+.skill-key.key-E { background: rgba(245, 158, 11, 0.35); }
+.skill-key.key-R { background: rgba(239, 68, 68, 0.45); }
+.skill-key.empty { background: rgba(255, 255, 255, 0.03); }
+.skill-table { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); gap: 3px; max-width: 640px; }
+.skill-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.skill-lv { font-size: 10px; color: var(--text-muted); }
+
+/* 정밀 수집 버튼 · 모달 */
+.bg-mode-dot { width: 7px; height: 7px; border-radius: 50%; background: #475569; display: inline-block; }
+.bg-mode-dot.on { background: #10b981; box-shadow: 0 0 6px #10b981; }
+.bg-modal { max-width: 620px; }
+.bg-modal-body { padding: 20px 24px 24px; overflow-y: auto; font-size: 13px; line-height: 1.7; color: #cbd5e1; }
+.bg-modal-body b { color: #f1f5f9; }
+.bg-gain-list { margin: 10px 0 14px 18px; }
+.bg-warn { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 12px 14px; font-size: 12px; }
+.bg-warn-title { font-weight: 700; color: #fbbf24; margin-bottom: 6px; }
+.bg-warn ul { margin-left: 16px; }
+.bg-warn li { margin: 3px 0; }
+.bg-toggle { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-weight: 700; color: #f1f5f9; cursor: pointer; user-select: none; }
+.bg-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.bg-toggle-track { width: 42px; height: 24px; border-radius: 999px; background: #334155; position: relative; transition: background 0.2s; flex-shrink: 0; }
+.bg-toggle-thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #f1f5f9; transition: transform 0.2s; }
+.bg-toggle input:checked + .bg-toggle-track { background: #10b981; }
+.bg-toggle input:checked + .bg-toggle-track .bg-toggle-thumb { transform: translateX(18px); }
+.bg-toggle input:focus-visible + .bg-toggle-track { outline: 2px solid #a78bfa; outline-offset: 2px; }
+.bg-mode-status { margin-top: 10px; font-size: 12px; color: var(--text-muted); }
+
+@media (max-width: 900px) {
+  .runes-layout { grid-template-columns: 1fr; }
+}

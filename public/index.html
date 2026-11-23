@@ -45,6 +45,11 @@
           <i data-lucide="book-open"></i>
           <span>증강체 도감</span>
         </button>
+        <button id="btnBackgroundMode" class="btn-secondary" title="게임 중 정밀 기록(아이템·스킬 순서, 룬 파편) 수집 설정">
+          <i data-lucide="radar"></i>
+          <span>정밀 수집</span>
+          <span id="bgModeDot" class="bg-mode-dot" title="꺼짐"></span>
+        </button>
         <button id="btnBookmarkGuide" class="btn-secondary" title="브라우저 북마크 등록 및 자동 실행">
           <i data-lucide="bookmark"></i>
           <span>북마크 추가</span>
@@ -281,6 +286,43 @@
         <p>롤 클라이언트에서 증강 칼바람을 플레이한 후 다시 조회해보세요.</p>
       </div>
     </main>
+  </div>
+
+  <!-- 정밀 기록 수집 (백그라운드) 설정 모달 -->
+  <div id="backgroundModal" class="modal-overlay hidden">
+    <div class="modal-content bg-modal">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="radar" class="modal-icon"></i>
+          <h2>정밀 기록 수집 (백그라운드)</h2>
+        </div>
+        <button id="btnCloseBackgroundModal" class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="bg-modal-body">
+        <p>켜 두면 전적 검색기가 <b>Windows에 로그인할 때 창 없이 자동으로 켜지고</b>, 롤 게임을 하는 동안 게임이 알려주는 정보를 몇 초마다 기록합니다. 롤 클라이언트의 경기 기록에는 남지 않는 정보라서, 이 방법으로만 모을 수 있습니다.</p>
+        <ul class="bg-gain-list">
+          <li><b>10명 전원의 아이템 구매 순서</b> (몇 분에 무엇을 샀는지)</li>
+          <li><b>내 스킬 찍은 순서</b> (레벨별)</li>
+          <li><b>내 룬 파편</b></li>
+        </ul>
+        <div class="bg-warn">
+          <div class="bg-warn-title">⚠️ 알아둘 점</div>
+          <ul>
+            <li>Windows 시작 프로그램에 <b>'MAYHEM.GG 전적 수집기'</b>가 등록되어, 컴퓨터를 켜면 항상 백그라운드에서 실행됩니다. (메모리 약 50MB, 롤이 꺼져 있을 땐 거의 일하지 않음)</li>
+            <li>라이엇이 제공하는 롤 클라이언트·게임의 <b>로컬 정보 창구만 읽습니다.</b> 게임 파일을 고치거나 게임에 개입하지 않지만, 공식 프로그램이 아닌 만큼 사용 책임은 본인에게 있습니다.</li>
+            <li>다른 사람의 스킬 순서와 룬 파편은 게임이 알려주지 않아 기록되지 않습니다.</li>
+            <li>전적 검색기가 꺼져 있던 동안 한 게임, 이미 끝난 게임은 기록할 수 없습니다.</li>
+            <li>끄면 시작 프로그램 등록도 바로 지워집니다. (Windows 설정 &gt; 앱 &gt; 시작 프로그램에서도 끌 수 있습니다)</li>
+          </ul>
+        </div>
+        <label class="bg-toggle">
+          <input type="checkbox" id="bgModeCheckbox">
+          <span class="bg-toggle-track"><span class="bg-toggle-thumb"></span></span>
+          <span>백그라운드 수집 허용</span>
+        </label>
+        <div id="bgModeStatus" class="bg-mode-status"></div>
+      </div>
+    </div>
   </div>
 
   <!-- 증강체 도감 모달 -->

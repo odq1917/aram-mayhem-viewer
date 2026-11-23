@@ -15,6 +15,8 @@ const dataDir = require('./data-dir');
 const { syncMatches } = require('./match-sync');
 const autoRefresher = require('./auto-refresh');
 const imageCache = require('./image-cache');
+const liveCollector = require('./live-collector');
+const backgroundMode = require('./background-mode');
 
 // 구버전(프로그램 폴더 data/)의 기록을 사용자 데이터 폴더로 이전
 try {
@@ -97,7 +99,8 @@ app.use('/api', (req, res, next) => {
 if (IDLE_SHUTDOWN_MIN > 0) {
   const idleMs = IDLE_SHUTDOWN_MIN * 60 * 1000;
   setInterval(() => {
-    if (Date.now() - lastApiActivity > idleMs) {
+    // 백그라운드 수집 모드에서는 페이지가 없어도 계속 실행
+    if (Date.now() - lastApiActivity > idleMs && !backgroundMode.isEnabled()) {
       console.log(`[AutoShutdown] ${IDLE_SHUTDOWN_MIN}분 동안 열린 페이지가 없어 서버를 종료합니다.`);
       process.exit(0);
     }
@@ -263,6 +266,11 @@ function sendHistory(res, puuid, record, extra = {}) {
     cachedCount: total,
     games,
     meta: meta.buildMetaFor(games),
+    // 게임 중 정밀 기록(아이템·스킬 순서, 룬 파편)이 있는 경기
+    preciseIds: (() => {
+      const ids = new Set(liveCollector.listLiveIds());
+      return games.filter(g => !g.isGap && ids.has(String(g.gameId))).map(g => String(g.gameId));
+    })(),
     ...extra
   });
 }
@@ -298,6 +306,36 @@ app.get('/api/matches/:puuid', async (req, res) => {
       return sendHistory(res, puuid, cached, { notice: '롤 클라이언트 응답 실패로 저장된 이전 전적만 표시합니다.' });
     }
     res.status(502).json({ error: `전적을 불러오지 못했습니다: ${err.message}` });
+  }
+});
+
+// 게임 중 수집한 정밀 기록 (아이템 구매 순서, 스킬 순서, 룬 파편) + 표시용 아이템·룬 정보
+app.get('/api/live/:gameId', (req, res) => {
+  const rec = liveCollector.readLive(req.params.gameId);
+  if (!rec) return res.status(404).json({ error: '이 경기는 정밀 기록이 없습니다.' });
+  const items = {};
+  for (const pl of Object.values(rec.players || {})) {
+    for (const it of pl.items || []) {
+      if (!items[it.id]) {
+        const item = meta.getItem(it.id);
+        if (item) items[it.id] = { id: item.id, name: item.name, iconUrl: meta.safeIconUrl(item.iconUrl) };
+      }
+    }
+  }
+  res.json({ ...rec, meta: { items, perks: meta.getPerksMeta([...(rec.runes?.statPerks || []), ...(rec.runes?.perkIds || [])]) } });
+});
+
+// 백그라운드 수집 모드 (Windows 시작 시 자동 실행 + 게임 중 정밀 기록)
+app.get('/api/background', (req, res) => {
+  res.json({ ...backgroundMode.status(), collector: liveCollector.status, preciseGames: liveCollector.listLiveIds().length });
+});
+app.post('/api/background', (req, res) => {
+  try {
+    const st = backgroundMode.setEnabled(Boolean(req.body?.enabled), __dirname);
+    console.log(`[Background] 백그라운드 수집 ${st.enabled ? '켬 (시작 프로그램 등록)' : '끔 (시작 프로그램 해제)'}`);
+    res.json({ ...st, collector: liveCollector.status, preciseGames: liveCollector.listLiveIds().length });
+  } catch (e) {
+    res.status(500).json({ error: `설정을 바꾸지 못했습니다: ${e.message}` });
   }
 });
 
@@ -424,6 +462,8 @@ async function startServer() {
   await meta.init();
   registerProtocolHandler();
   autoRefresher.start();
+  liveCollector.start();
+  backgroundMode.syncOnStartup(__dirname);
   const server = app.listen(PORT, HOST, () => {
     console.log(`=======================================================`);
     console.log(`⚡ 롤 증강 칼바람 전적 뷰어 (ARAM Mayhem Search Viewer) v${APP_VERSION}`);

@@ -251,6 +251,11 @@ class LcuConnector {
     return await this.request('/lol-gameflow/v1/gameflow-phase');
   }
 
+  // 진행 중인 게임 세션 (gameData.gameId 로 경기 기록과 연결)
+  async getGameflowSession() {
+    return await this.request('/lol-gameflow/v1/session');
+  }
+
   // 최근 종료된 게임 EOG 통계
   async getEndOfGameStats() {
     return await this.request('/lol-end-of-game/v1/eog-stats-block');
