@@ -3099,3 +3099,18 @@ body.mode-custom .toolbar-aug-search { display: none; }
 @media (max-width: 900px) {
   .runes-layout { grid-template-columns: 1fr; }
 }
+
+/* 경기 카드: 양 팀 챔피언 · 닉네임 목록 (협곡 사용자 설정) */
+.col-teams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  min-width: 0;
+}
+.team-list-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.team-list-row { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 11px; color: var(--text-muted); line-height: 16px; }
+.team-list-row img { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+.team-list-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-list-name[data-riot-id] { cursor: pointer; }
+.team-list-name[data-riot-id]:hover { color: #f1f5f9; text-decoration: underline; }
+.team-list-row.is-target .team-list-name { color: #f1f5f9; font-weight: 700; }

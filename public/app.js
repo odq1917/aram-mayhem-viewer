@@ -1115,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultBadgeText = isRemake ? '다시하기' : (isWin ? '승리' : '패배');
 
     card.innerHTML = `
-      <div class="match-summary-row" onclick="toggleMatchDetail('${game.gameId}')">
+      <div class="match-summary-row" onclick="if (!event.target.closest('.team-list-name[data-riot-id]')) toggleMatchDetail('${game.gameId}')">
         <div class="col-meta">
           <div class="game-mode-row">
             <span class="game-mode-title">${escapeHtml(modeNameText)}</span>
@@ -1148,12 +1148,12 @@ document.addEventListener('DOMContentLoaded', () => {
           ${renderMultiKillBadge(p)}
         </div>
 
-        <div class="col-augments"${game.isCustomRift ? ' style="visibility:hidden"' : ''}>
+        ${game.isCustomRift ? renderTeamListHtml(game) : `<div class="col-augments">
           <span class="augment-label-bar">${SVG_SPARKLES} 장착 증강체</span>
           <div class="augment-slots-grid${(p.augments || []).length > 4 ? ` many-${Math.min(p.augments.length, 6)}` : ''}">
             ${augmentsHtml}
           </div>
-        </div>
+        </div>`}
 
         <div class="col-items">
           ${itemsHtml}
@@ -1235,6 +1235,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 증강은 보통 4개지만 전환: 혼돈 / 나는 왕이다 등으로 최대 6개까지 획득 가능
+  // 경기 카드: 양 팀 챔피언 + 닉네임 목록 (증강체가 없는 협곡 사용자 설정 판)
+  function renderTeamListHtml(game) {
+    const col = (team) => `<div class="team-list-col">${team.map(p => {
+      const riotId = p.gameName && p.tagLine ? `${p.gameName}#${p.tagLine}` : '';
+      const name = p.gameName || p.summonerName || p.champion?.name || '';
+      return `<div class="team-list-row${p.isTarget ? ' is-target' : ''}">
+        <img src="${escapeHtml(p.champion?.squarePortraitPath || '')}" alt="" title="${escapeHtml(p.champion?.name || '')}" loading="lazy">
+        <span class="team-list-name"${riotId && !p.isTarget ? ` data-riot-id="${escapeHtml(riotId)}"` : ''} title="${escapeHtml(riotId || name)}">${escapeHtml(name)}</span>
+      </div>`;
+    }).join('')}</div>`;
+    return `<div class="col-teams">${col(game.team100 || [])}${col(game.team200 || [])}</div>`;
+  }
+
   function renderAugmentSlotsHtml(augments) {
     let html = '';
     const slotCount = Math.max(4, Math.min(augments.length, 6));
@@ -1758,7 +1771,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 상세 서랍에서 다른 소환사 닉네임 클릭 시 해당 소환사 전적 검색
   matchListContainer.addEventListener('click', (e) => {
-    const nameEl = e.target.closest('.player-name-text.is-searchable');
+    const nameEl = e.target.closest('.player-name-text.is-searchable, .team-list-name[data-riot-id]');
     if (!nameEl) return;
     e.stopPropagation();
     const riotId = nameEl.getAttribute('data-riot-id');
