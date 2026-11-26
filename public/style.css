@@ -3114,3 +3114,13 @@ body.mode-custom .toolbar-aug-search { display: none; }
 .team-list-name[data-riot-id] { cursor: pointer; }
 .team-list-name[data-riot-id]:hover { color: #f1f5f9; text-decoration: underline; }
 .team-list-row.is-target .team-list-name { color: #f1f5f9; font-weight: 700; }
+
+/* 기록에 없는 18레벨 추가 강화 ('?' 칸) */
+.aug-unknown { position: relative; border-style: dashed !important; border-color: rgba(148, 163, 184, 0.6) !important; overflow: hidden; }
+.aug-unknown img { filter: grayscale(1) brightness(0.45); }
+.aug-unknown-mark {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 18px; color: #f1f5f9; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+.aug-mini-slot.aug-unknown .aug-unknown-mark { font-size: 11px; }

@@ -482,6 +482,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 기본 선택은 레벨 3/7/11/15의 4개. 16.21 시즌부터는 게임별 테마 기믹으로 증강을 더 받을 수 있어
   // 최대 6개까지 표시하며, 그 경우에도 기준은 4개로 둠
+  const PENTAKILL_BLANK_AUG = 3176;
+  const PENTAKILL_ENH_AUGS = [3170, 3171, 3172];
+  const LV18_ENH_DESC = '이 판에서는 18레벨에 스킬 강화(헤비·파워·스래시 중 하나)를 하나 더 받았지만, 롤 경기 기록에는 어떤 강화였는지 남지 않습니다.';
+
+  // 기록에 없는 18레벨 추가 강화 칸 (큰 칸 / 상세 작은 칸)
+  function missingEnhSlotHtml(iconUrl, mini = false) {
+    const attrs = `data-aug-id="0" data-aug-name="18레벨 추가 강화 (기록 없음)" data-aug-desc="${encodeURIComponent(LV18_ENH_DESC)}" data-aug-rarity="기록 없음" data-aug-icon="${escapeHtml(iconUrl || '')}"`;
+    const inner = `${iconUrl ? `<img src="${escapeHtml(iconUrl)}" alt="" loading="lazy">` : ''}<span class="aug-unknown-mark">?</span>`;
+    if (mini) return `<div class="aug-mini-slot aug-unknown" ${attrs}>${inner}</div>`;
+    return `
+      <div class="aug-slot-wrapper">
+        <div class="augment-slot aug-unknown" ${attrs}>${inner}</div>
+        <span class="aug-name-label" title="18레벨 추가 강화 (기록 없음)">18렙<br>추가 강화</span>
+      </div>`;
+  }
+
   function annotateAugments(augs, champLevel) {
     const list = augs.map(aug => ({ ...aug }));
     const picks = [3, 7, 11, 15].filter(l => (champLevel || 0) >= l).length;
@@ -547,6 +563,11 @@ document.addEventListener('DOMContentLoaded', () => {
         spells: (p.spellIds || []).map(id => meta.spells[id] || null),
         items: (p.itemIds || []).map(id => (id > 0 ? meta.items[id] || null : null)),
         augments: annotateAugments((p.augmentIds || []).map(id => meta.augments[id]).filter(a => a && !a.hidden), p.champLevel),
+        // 펜타킬 임시 증강(3176): 일반 증강 + 스킬 강화(헤비·파워·스래시)를 주고, 18레벨에 강화를 하나 더 줌
+        // → 두 번째 강화는 롤 경기 기록에 남지 않아 '?' 칸으로 표시
+        missingLv18Enh: (p.augmentIds || []).includes(PENTAKILL_BLANK_AUG) && (p.champLevel || 0) >= 18
+          ? (meta.augments[(p.augmentIds || []).find(id => PENTAKILL_ENH_AUGS.includes(id))]?.iconUrl || '')
+          : null,
         runeInfo: p.runes ? {
           perks: (p.runes.perkIds || []).map(id => meta.perks?.[id] || null),
           primary: meta.perks?.[p.runes.primaryStyle] || null,
@@ -1108,7 +1129,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const durationMin = Math.floor(game.gameDuration / 60);
     const durationSec = game.gameDuration % 60;
     const timeAgo = formatTimeAgo(game.gameCreation);
-    const augmentsHtml = renderAugmentSlotsHtml(p.augments || []);
+    const augmentsHtml = renderAugmentSlotsHtml(p.augments || [], p.missingLv18Enh);
+    const augSlotTotal = (p.augments || []).length + (p.missingLv18Enh !== null && p.missingLv18Enh !== undefined ? 1 : 0);
     const itemsHtml = renderItemSlotsHtml(p.items || []);
 
     const modeNameText = game.modeName || (game.isMayhemClassic ? '아수라장 클래식' : '아수라장');
@@ -1150,7 +1172,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ${game.isCustomRift ? renderTeamListHtml(game) : `<div class="col-augments">
           <span class="augment-label-bar">${SVG_SPARKLES} 장착 증강체</span>
-          <div class="augment-slots-grid${(p.augments || []).length > 4 ? ` many-${Math.min(p.augments.length, 6)}` : ''}">
+          <div class="augment-slots-grid${augSlotTotal > 4 ? ` many-${Math.min(augSlotTotal, 6)}` : ''}">
             ${augmentsHtml}
           </div>
         </div>`}
@@ -1248,10 +1270,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return `<div class="col-teams">${col(game.team100 || [])}${col(game.team200 || [])}</div>`;
   }
 
-  function renderAugmentSlotsHtml(augments) {
+  function renderAugmentSlotsHtml(augments, missingEnhIcon = null) {
     let html = '';
-    const slotCount = Math.max(4, Math.min(augments.length, 6));
+    const hasMissing = missingEnhIcon !== null && missingEnhIcon !== undefined;
+    const slotCount = Math.max(4, Math.min(augments.length + (hasMissing ? 1 : 0), 6));
     for (let i = 0; i < slotCount; i++) {
+      if (hasMissing && i === augments.length) {
+        html += missingEnhSlotHtml(missingEnhIcon);
+        continue;
+      }
       const aug = augments[i];
       if (aug) {
         const shortName = getShortAugName(aug.name);
@@ -1389,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span>CS ${p.minionsKilled || 0} <em>(${((p.minionsKilled || 0) / minutes).toFixed(1)})</em></span>
                 <span>시야 ${p.ext?.visionScore ?? '-'}</span>
               </div>`
-            : `<div class="player-augments-mini${(p.augments || []).length > 4 ? ` many-${Math.min(p.augments.length, 6)}` : ''}">${augsMini}</div>`}
+            : `<div class="player-augments-mini${(p.augments || []).length + (p.missingLv18Enh != null ? 1 : 0) > 4 ? ` many-${Math.min((p.augments || []).length + (p.missingLv18Enh != null ? 1 : 0), 6)}` : ''}">${augsMini}${p.missingLv18Enh != null ? missingEnhSlotHtml(p.missingLv18Enh, true) : ''}</div>`}
           
           <div class="player-stat-cell dealt" title="가한 피해: ${(p.totalDamage || 0).toLocaleString()} (물리 ${(p.physicalDamage || 0).toLocaleString()} / 마법 ${(p.magicDamage || 0).toLocaleString()} / 고정 ${(p.trueDamage || 0).toLocaleString()})">
             <span class="stat-num">${(p.totalDamage || 0).toLocaleString()}</span>
